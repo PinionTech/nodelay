@@ -3,11 +3,11 @@
 class Service
   constructor: (@name, @opts) ->
 
-  start(cb): ->
+  start: (cb) ->
     @process = @run @opts.start, cb
     @pid = @process.pid
   
-  stop(cb): -> @run @opts.stop, cb
+  stop: (cb) -> @run @opts.stop, cb
   
   kill: (args...) -> @process.kill args...
   

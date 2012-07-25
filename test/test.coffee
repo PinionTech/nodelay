@@ -5,9 +5,11 @@ s = service "simple"
   stop: (s) -> "kill #{s.pid}"
 
 console.log "starting simple"
-s.start()
+s.start ->
 
-setTimeout ->
-  console.log "stopping simple"
-  s.stop()
-, 2000
+console.log "simple started"
+
+#setTimeout ->
+console.log "stopping simple"
+s.stop()
+#, 2000
