@@ -1,0 +1,23 @@
+{
+  "author": "Sam Gentle <sam@pinion.gg>",
+  "name": "nodelay",
+  "description": "Devops for Node",
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=v0.4.9"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "coffee-script": "*",
+    "assert": "*",
+    "vows": "*"
+  },
+  "licenses": {
+    "type": "MIT",
+    "url": "http://www.opensource.org/licenses/MIT"
+  },
+  "scripts": {
+    "test": "cake test"
+  }
+}
