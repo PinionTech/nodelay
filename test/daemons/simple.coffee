@@ -1,1 +1,1 @@
-setInterval (->), 9999999999
+setInterval (->), 999999
