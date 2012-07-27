@@ -2,12 +2,10 @@ service = require '../service'
 
 s = service "simple"
   start: "coffee daemons/simple.coffee"
-  stop: (s) -> "kill -- -#{s.pid}"
 
 
 s2 = service "simple2"
   start: "coffee daemons/simple.coffee"
-  stop: (s) -> "kill -- -#{s.pid}"
 
 console.log "starting simple"
 s.start()
@@ -26,4 +24,4 @@ setTimeout ->
   console.log "stopping simple2"
   s2.stop()
   console.log "simple2 stopped"
-, 200000000
+, 2000

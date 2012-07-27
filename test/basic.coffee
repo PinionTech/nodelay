@@ -22,38 +22,39 @@ describe "A fully managed service"
   "is created with service(name, args)":
     topic: ->
       service "service"
-        start: "daemons/simple.coffee"
+        start: "coffee daemons/simple.coffee"
         pidFile: "/tmp/service#{(''+Math.random().toFixed(10)).slice(2)}"
     
     "which returns an object": (s) -> assert.isObject s
     
     "and started with start()":
-      topic: (s) -> s.start()
+      topic: t (s) -> s.start (e) => @callback e, s
       
       "which gives the service a pid": (s) ->
         assert.notEqual s.pid, undefined
 
-      "which runs the service": (s) ->
+      "which runs the service": (e, s) ->
         assert.ok exists "/proc/#{s.pid}"
 
-      "and writes a pidfile": (s) ->
+      "which writes a pidfile": (e, s) ->
         pid = fs.readFileSync s.pidFile
         assert.equal pid, s.pid
 
       "and stopped with stop()":
-        topic: (s) -> s.stop()
-
+        topic: t (s) -> s.stop (e) =>
+          @callback e, s
+        
         "which stops the service": (s) ->
           assert.ok !exists "/proc/#{s.pid}"
 
-        "and stops all subprocesses":
-          topic: (_, s) ->
+        "which stops all subprocesses":
+          topic: t (_, s) ->
             exec "ps -o '%p' --no-headers --ppid #{s.pid}", @callback
-            null
   
-          "": (err, stdout, stderr) ->          
-            assert.equal stdout, null
+          #"": (err, stdout, stderr, a, b, c) ->          
+          #  assert.equal stdout, ''
 
 
         "and deletes the pidfile": (s) ->
           assert.ok !exists s.pidFile 
+
