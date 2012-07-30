@@ -9,6 +9,7 @@
   "dependencies": {
   },
   "devDependencies": {
+    "proc": "git://github.com/PinionTech/proc-node.git", 
     "coffee-script": "*",
     "assert": "*",
     "vows": "*"

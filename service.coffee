@@ -16,7 +16,13 @@ run = (cmd, extra_opts, cb) ->
 
 
 class Service
-  constructor: (@name, @opts) ->
+  Service.allServices = []
+
+  constructor: (name, opts={}) ->
+    return (new Service name, opts) if this is global
+    [@name, @opts] = [name, opts]
+
+    Service.allServices.push this
     for k in "pidFile".split ' '
       @[k] = @opts[k] if @opts[k]?
 
@@ -26,7 +32,7 @@ class Service
     
     #TODO: Call callback only when process is actually running
     done = =>
-      @pid = @process.pid
+      @pid = @process.pid+1 #This is way dodgy
       if @pidFile
         fs.writeFileSync @pidFile, @pid, 'utf8'
       cb?()
@@ -62,4 +68,4 @@ class Service
 
 
 
-module.exports = (args...) -> new Service(args...)
+module.exports = Service

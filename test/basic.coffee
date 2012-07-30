@@ -51,8 +51,8 @@ describe "A fully managed service"
           topic: t (_, s) ->
             exec "ps -o '%p' --no-headers --ppid #{s.pid}", @callback
   
-          #"": (err, stdout, stderr, a, b, c) ->          
-          #  assert.equal stdout, ''
+          "": (err, stdout, stderr, a, b, c) ->          
+            assert.equal stdout, ''
 
 
         "and deletes the pidfile": (s) ->
