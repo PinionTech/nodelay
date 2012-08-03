@@ -50,10 +50,6 @@ class Service
     else
       @run "kill -- -#{@pid}", done
 
-    
-  
-  readStatus: ->
-
   kill: (args...) -> @process.kill args...
   
   run: (cmd, cb) ->
