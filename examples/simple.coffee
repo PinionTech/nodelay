@@ -7,7 +7,7 @@ nodelay "single-origin-roasters", ->
 
   @workers "process"
   @monitors "process"
-  @controllers "csgo"
+  @controllers "restarter"
 
   @resource "simple"
     start: "coffee test/daemons/simple.coffee"

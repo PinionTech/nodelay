@@ -2,17 +2,18 @@
   "author": "Sam Gentle <sam@pinion.gg>",
   "name": "nodelay",
   "description": "Devops for Node",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "engines": {
     "node": ">=v0.4.9"
   },
-  "bin":"./bin/nodelay",
+  "bin": "./bin/nodelay",
+  "main": "nodelay",
   "dependencies": {
     "proc": "git://github.com/PinionTech/proc-node.git", 
     "optimist": "*",
     "coffee-script": "*",
     "zmq": "*",
-    "assert": "*",
+    "assert": "*"
   },
   "devDependencies": {
     "vows": "*"
@@ -22,7 +23,7 @@
     "url": "http://www.opensource.org/licenses/MIT"
   },
   "scripts": {
-    "test": "cake test"
+    "test": "cake test",
     "build": "cake build"
   }
 }
