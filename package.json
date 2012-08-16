@@ -6,12 +6,15 @@
   "engines": {
     "node": ">=v0.4.9"
   },
+  "bin":"./bin/nodelay",
   "dependencies": {
+    "proc": "git://github.com/PinionTech/proc-node.git", 
+    "optimist": "*",
+    "coffee-script": "*",
+    "zmq": "*",
+    "assert": "*",
   },
   "devDependencies": {
-    "proc": "git://github.com/PinionTech/proc-node.git", 
-    "coffee-script": "*",
-    "assert": "*",
     "vows": "*"
   },
   "licenses": {
@@ -20,5 +23,6 @@
   },
   "scripts": {
     "test": "cake test"
+    "build": "cake build"
   }
 }

@@ -1,4 +1,4 @@
-nodelay = require './nodelay'
+nodelay = require 'nodelay'
 
 nodelay "single-origin-roasters", ->
   @upstream "1.2.3.4"

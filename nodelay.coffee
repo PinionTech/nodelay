@@ -1,10 +1,17 @@
 Node = require './lib/node'
 {fork} = require 'child_process'
+path = require 'path'
+fs = require 'fs'
 
-forkCoffee = (path, options={}) ->
-  [oldExecPath, process.execPath] = [process.execPath,'node_modules/.bin/coffee']
-  console.log "fork", path
-  child = fork path, [], options
+forkCoffee = (script, options={}) ->
+  coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
+  [oldExecPath, process.execPath] = [process.execPath, coffeePath]
+  if not fs.existsSync script
+    script = path.join __dirname, script
+    options.cwd ?= __dirname
+
+  child = fork script, [], options
+  
   process.execPath = oldExecPath
   child
 
@@ -32,7 +39,7 @@ class Nodelay
 
     init?.call dsl
 
-    console.log "upstream is", @host, @pubport, @subport
+    #console.log "upstream is", @host, @pubport, @subport
 
     @node.listen '127.0.0.1'
     @node.on '*', @node.forward
@@ -42,7 +49,7 @@ class Nodelay
     forkCoffee "monitors/#{monitor}.coffee" for monitor in @monitors
 
     setTimeout =>
-      console.log "resources:", @resources
+      #console.log "resources:", @resources
       @node.send "add resource", resource for name, resource of @resources
     , 1000
 
