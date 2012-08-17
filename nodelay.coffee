@@ -51,6 +51,6 @@ class Nodelay
     setTimeout =>
       #console.log "resources:", @resources
       @node.send "add resource", resource for name, resource of @resources
-    , 1000
+    , 2000
 
 module.exports = Nodelay 

@@ -1,6 +1,6 @@
 Node = require '../lib/node'
 
-node = Node.connect 'localhost'
+node = Node('restarter').connect 'localhost'
 
 node.on 'metric', ({data: {resource, metrics}}) ->
   if !metrics.running

@@ -1,6 +1,6 @@
 EventEmitter = require('events').EventEmitter
 
-zmq = require 'zmq'
+ws = require 'ws'
 
 class Node extends EventEmitter
   @connect = (args...) -> Node().connect args...
@@ -11,25 +11,29 @@ class Node extends EventEmitter
 
     @name = name or Math.random().toFixed(10).slice(2)
 
-    @pub = zmq.socket 'pub'
-    @sub = zmq.socket 'sub'
-    @sub.subscribe ''
-    @sub.on 'message', @recv
-
-  connect: (host, subport=44445, pubport=44446) -> 
-    @pub.connect "tcp://#{host}:#{subport}"
-    @sub.connect "tcp://#{host}:#{pubport}"
+  connect: (host, port=44445) -> 
+    @ws = new ws("ws://#{host}:#{port}")
+    @ws.on 'message', @recv
     this
   
-  listen: (host="127.0.0.1", subport=44445, pubport=44446) ->
-    @pub.bindSync "tcp://#{host}:#{pubport}"
-    @sub.bindSync "tcp://#{host}:#{subport}"
+  listen: (host="127.0.0.1", port=44445) ->
+    console.log ws
+    @wss = new ws.Server({host, port})
+    @wss.on 'connection', (client) =>
+      client.on 'message', @recv
     this
    
   sendRaw: (msg) ->
-    @pub.send JSON.stringify msg
+    if @ws
+      @ws.send JSON.stringify msg
+    if @wss
+      client.send JSON.stringify msg for client in @wss.clients
 
   forward: (msg) => @sendRaw msg
+
+  parent:
+    send: @send
+    sendRaw: @send
 
   send: (type, data={}) ->
     if typeof type is "string"

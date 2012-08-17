@@ -9,11 +9,11 @@ CHECK_INTERVAL = 5000
 
 services = {}
 
-node = Node.connect 'localhost'
+node = Node('process monitor').connect 'localhost'
 
 node.on 'add resource', ({data: service}) ->
-  console.log "adding service", service 
-  services[service.name] = service 
+  if service.pidFile
+    services[service.name] = service 
 
 node.on 'remove resource', ({data: service}) ->
   delete services[service.name]

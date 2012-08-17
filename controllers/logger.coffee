@@ -5,7 +5,7 @@ RED   = '\u001b[31m'
 BLUE  = '\u001b[34m'
 RESET = '\u001b[0m'
 
-node = Node.connect 'localhost'
+node = Node('logger').connect 'localhost'
 
 node.on '*', (msg) ->
   header = "[#{msg.from} #{RED}#{msg.type}#{RESET}]"

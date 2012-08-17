@@ -1,6 +1,6 @@
 Node = require '../lib/node'
 
-node = Node.connect 'localhost'
+node = Node('childkiller').connect 'localhost'
 
 WINDOW = 12
 avgs = {}
@@ -15,9 +15,11 @@ node.on 'metric', ({data: {resource, metrics}}) ->
      
       if child.state is 'zombie'
         node.send "kill", child.pid
+        node.send "info", "Killed zombie child #{child.pid} of #{resource}"
        
       else if myavgs.length == WINDOW
         avg = myavgs.reduce((a, b) -> a + b) / WINDOW
         if avg >= 0.8
           node.send "kill", child.pid
+          node.send "info", "Killed runaway CPU child #{child.pid} of #{resource}"
      

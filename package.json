@@ -12,7 +12,7 @@
     "proc": "git://github.com/PinionTech/proc-node.git", 
     "optimist": "*",
     "coffee-script": "*",
-    "zmq": "*",
+    "ws": "*",
     "assert": "*"
   },
   "devDependencies": {
