@@ -9,7 +9,7 @@ node = Node('steam updates monitor').connect 'localhost'
 watchers = {}
 
 watch = (file, cb) ->
-  child = spawn 'tail', ['-F', file]
+  child = spawn 'tail', ['-n','0','-F', file]
   child.stdout.on 'data', (data) ->
     cb data.toString('utf8')
   child.on 'exit', ->
@@ -23,7 +23,22 @@ node.on 'add resource', ({data: res}) ->
     watchFile = path.join res.steamDir, "logs", "content_log.txt"
 
     watchers[res.name] ||= watch watchFile, (data) ->
-      node.send "got data", data
+      for line in data.split '\n'
+        #node.send "got data", data.trim()
+        if match = line.match /\[(.*?)\] (.*)/
+          time = new Date(match[1])
+          msg = match[2]
+
+          if match = msg.match /AppID (\d+) state changed : (.*?) = (.*)/
+            [_, appid, stateCode, states] = match
+            node.send "metric", resource: res.name, metrics: steam: {appid, stateCode, states:states.split(',')}, time: time.toISOString()
+          
+          if match = msg.match /Scheduler update appID (\d+)/
+            node.send "steam update", name: res.name, time: time.toISOString()
+
+          if match = msg.match /Scheduler finished appID (\d+)/
+            node.send "steam update finished", name: res.name, time: time.toISOString()
+
 
 node.on 'remove resource', ({data: res}) ->
   delete watchers[res]
