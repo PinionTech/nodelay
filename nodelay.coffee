@@ -1,4 +1,6 @@
 Node = require './lib/node'
+
+EventEmitter = require('events').EventEmitter
 {fork} = require 'child_process'
 path = require 'path'
 fs = require 'fs'
@@ -15,7 +17,7 @@ forkCoffee = (script, options={}) ->
   process.execPath = oldExecPath
   child
 
-class Nodelay
+class Nodelay extends EventEmitter
   constructor: (name, init) ->
     return new Nodelay name, init if this is global
 
@@ -28,21 +30,38 @@ class Nodelay
 
     dsl =
       instance: this
-      upstream: (@host, @pubport, @subport) =>
+      node: @node
+      upstream: (host, port) => @upstream = {host, port}
+      bind: (@bind) =>
       proxy: (@proxy) =>
+      on: @on
       workers: (@workers...) =>
       monitors: (@monitors...) =>
       controllers: (@controllers...) =>
+      privkey: (privkey) =>
+        @privkey = fs.readFileSync(privkey)
+        @node.privkey = @privkey
+      pubkey: (pubkey) =>
+        @pubkey = fs.readFileSync(pubkey)
+        @node.pubkey = @pubkey
+        @node.auth = (msg) -> console.log "got auth msg", msg; true
       resource: (name, resource) =>
         resource.name = name
         @resources[name] = resource
 
     init?.call dsl
 
+    if @upstream
+      @node.connect @upstream.host, @upstream.port, =>
+        @emit "connected"
+        if @privkey
+          @node.send type: 'auth', signed: true  
     #console.log "upstream is", @host, @pubport, @subport
 
-    @node.listen '127.0.0.1'
+    @node.listen @bind or '127.0.0.1'
     @node.on '*', @node.forward
+
+#    @node.on '*', (msg) => @node.forward (msg) i:f !@proxy or msg.type in @proxy
  
     forkCoffee "controllers/#{controller}.coffee" for controller in @controllers
     forkCoffee "workers/#{worker}.coffee" for worker in @workers
@@ -53,4 +72,6 @@ class Nodelay
       @node.send "add resource", resource for name, resource of @resources
     , 2000
 
+
+Nodelay.Node = Node
 module.exports = Nodelay 
