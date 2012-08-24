@@ -1,20 +1,27 @@
 repl = require 'repl'
 util = require 'util'
+fs = require 'fs'
 Node = require '../lib/node'
 opts = require('optimist')
   .usage('Usage: $0 [host]')
   .options
     p: alias: 'port', describe: "use non-default port (does not work)", default: 44445
+    k: alias: 'auth-key', describe: "use auth key file"
 
 [host] = opts.argv._
 
-port = opts.argv.v
+port = opts.argv.p
+privkey = opts.argv.k
 
 RED   = '\u001b[31m'
 BLUE  = '\u001b[34m'
 RESET = '\u001b[0m'
 
-node = Node.connect host or 'localhost'
+node = Node.connect (host or 'localhost'), port, ->
+  if privkey
+    node.privkey = fs.readFileSync(privkey)
+    node.send type: "auth", signed: true
+   
 
 global.quiet = false
 

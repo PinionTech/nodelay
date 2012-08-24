@@ -21,11 +21,14 @@ class Nodelay extends EventEmitter
   constructor: (name, init) ->
     return new Nodelay name, init if this is global
 
+    @name = name
+
     @resources = {}
     @controllers = []
     @workers = []
     @monitors = []
 
+    @proxy = {in: [], out:[]}
     @node = new Node name
 
     dsl =
@@ -33,7 +36,9 @@ class Nodelay extends EventEmitter
       node: @node
       upstream: (host, port) => @upstream = {host, port}
       bind: (@bind) =>
-      proxy: (@proxy) =>
+      proxy: (proxy) =>
+        @proxy.in.push proxy.in... if proxy.in
+        @proxy.out.push proxy.out... if proxy.out
       on: @on
       workers: (@workers...) =>
       monitors: (@monitors...) =>
@@ -58,8 +63,21 @@ class Nodelay extends EventEmitter
           @node.send type: 'auth', signed: true  
     #console.log "upstream is", @host, @pubport, @subport
 
+    console.log @node.parent
+
     @node.listen @bind or '127.0.0.1'
-    @node.on '*', @node.forward
+    @node.parent.on '*', (msg) => @node.children.forward
+    @node.children.on '*', @node.children.forward
+    @node.children.on '*', (msg) => @node.parent.forward msg if @proxy.out and msg.type in @proxy.out
+
+    @node.children.on 'metric', (msg) =>
+      msg = JSON.parse(JSON.stringify(msg))
+      msg.data.resource = msg.data.resource + "@" + @name
+      if typeof msg.from is "object"
+        msg.unshift @name
+      else
+        msg.from = [@name, msg.from]
+      @node.parent.forward msg
 
 #    @node.on '*', (msg) => @node.forward (msg) i:f !@proxy or msg.type in @proxy
  

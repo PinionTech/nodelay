@@ -5,6 +5,9 @@ ws = require 'ws'
 
 HASH_ALG = 'sha256'
 
+extend = (foo, bar) -> foo[k] = v for own k, v of bar
+
+
 class Node extends EventEmitter
   @connect = (args...) -> Node().connect args...
   @listen = (args...) -> Node().listen args...
@@ -14,11 +17,30 @@ class Node extends EventEmitter
 
     @name = name or Math.random().toFixed(10).slice(2)
 
+    @parent = new EventEmitter
+    extend @parent,
+      send: (type, data) => @parent.sendRaw @buildMsg type, data
+      sendRaw: (msg) =>
+        if @ws and @ws.readyState == 1
+          @ws.send JSON.stringify msg
+      forward: (msg) => @parent.sendRaw msg
+
+    @children = new EventEmitter
+    extend @children, 
+      send: (type, data) => @children.sendRaw @buildMsg type, data
+      sendRaw: (msg) =>
+        if @wss
+          if @auth
+            client.send JSON.stringify msg for client in @wss.clients when client.authed
+          else
+            client.send JSON.stringify msg for client in @wss.clients
+      forward: (msg) => @children.sendRaw msg
+
   connect: (host, port=44445, cb) -> 
     [port, cb] = [44445, port] if typeof port is 'function'
     console.log @name, "connecting to", host, "on", port
     @ws = new ws("ws://#{host}:#{port}")
-    @ws.on 'message', @recv
+    @ws.on 'message', (data) => @recv data, @ws
     @ws.on 'open', cb if cb
     this
   
@@ -32,20 +54,12 @@ class Node extends EventEmitter
     this
    
   sendRaw: (msg) ->
-    if @ws and @ws.readyState == 1
-      @ws.send JSON.stringify msg
-    if @wss
-      if @auth
-        client.send JSON.stringify msg for client in @wss.clients when client.authed
-      else
-        client.send JSON.stringify msg for client in @wss.clients
+    @parent.sendRaw msg
+    @children.sendRaw msg
 
   forward: (msg) => @sendRaw msg
 
-  parent:
-    send: @send
-
-  send: (type, data={}) ->
+  buildMsg: (type, data={}) ->
     if typeof type is "string"
       msg = {type, data}
     else
@@ -57,8 +71,9 @@ class Node extends EventEmitter
       signer = crypto.createSign HASH_ALG
       signer.update JSON.stringify msg
       msg.signature = signer.sign @privkey, 'base64'
-    
-    @sendRaw msg 
+    msg
+
+  send: (type, data) -> @sendRaw @buildMsg type, data
 
   recv: (data, from) =>
     msg = JSON.parse data
@@ -84,7 +99,11 @@ class Node extends EventEmitter
     return if msg.from is @name
     return if msg.to and msg.to isnt @name
     @emit '*', msg
+    specific = if from is @ws then @parent else @children
+    specific.emit '*', msg
+
     if msg.type
       @emit msg.type, msg
+      specific.emit msg.type, msg
 
 module.exports = Node
