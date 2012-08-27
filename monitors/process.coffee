@@ -10,11 +10,14 @@ CHECK_INTERVAL = 5000
 node = Node('process monitor').connect 'localhost', process.argv[2]
 
 node.on 'add resource', (msg) ->
+  return unless typeof msg.resource is 'string'
   res = msg.data
   if res?.pidFile
     node.resource msg.resource, res 
 
-node.on 'remove resource', (msg) -> node.unresource msg.resource
+node.on 'remove resource', (msg) ->
+  return unless typeof msg.resource is 'string'
+  node.unresource msg.resource
 
 
 oldTicks = {}
