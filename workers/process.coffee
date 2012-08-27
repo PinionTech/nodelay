@@ -21,7 +21,8 @@ services = {}
 
 node = Node('process worker').connect 'localhost', process.argv[2]
 
-node.on 'add resource', ({data: service}) ->
+node.on 'add resource', ({resource, data: service}) ->
+  return unless typeof resource is 'string'
   #console.log "adding service", service 
   services[service.name] = service 
 
@@ -44,8 +45,9 @@ start = (service, cb) ->
   # Don't use the process callback 'cause we don't know if the process terminates
   done()
 
-node.on 'start', ({data: name}) ->
-  if service = services[name]
+node.on 'start', ({resource}) ->
+  return unless typeof resource is 'string'
+  if service = services[resource]
     start service
 
 
@@ -56,24 +58,26 @@ stop = (service, cb) ->
   else
     run "kill -- -`cat #{service.pidFile} | xargs ps --no-header -o pgrp -p`", cb
 
-node.on 'stop', ({data: name}) ->
-  if service = services[name]
+node.on 'stop', ({resource}) ->
+  return unless typeof resource is 'string'
+  if service = services[resource]
     stop service
 
     #if service.pidFile && fs.existsSync service.pidFile
     #  fs.unlinkSync service.pidFile
 
 
-node.on 'restart', ({data: name}) ->
-  if service = services[name]
+node.on 'restart', ({resource}) ->
+  return unless typeof resource is 'string'
+  if service = services[resource]
     stop service, ->
       setTimeout ->
         start service
       1000
-
 # This should probably go somewhere else
-node.on 'kill', ({data: pid}) ->
- run "kill -9 #{pid}"
+node.on 'kill', ({resource, data: pid}) ->
+  return unless typeof resource is 'string'
+  run "kill -9 #{pid}"
 
 
 
