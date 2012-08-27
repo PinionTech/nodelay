@@ -38,11 +38,25 @@ class Node extends EventEmitter
 
   connect: (host, port=44445, cb) -> 
     [port, cb] = [44445, port] if typeof port is 'function'
+    [@host, @port, @cb] = [host, port, cb]
+    
     console.log @name, "connecting to", host, "on", port
     @ws = new ws("ws://#{host}:#{port}")
     @ws.on 'message', (data) => @recv data, @ws
     @ws.on 'open', cb if cb
+    @ws.on 'close', =>
+      console.log @name, "connection closed"
+      @reconnect()
+    @ws.on 'error', (err) =>
+      console.log @name, "error", err.message
+      @reconnect()
     this
+  
+  reconnect: =>
+    console.log @name, "reconnecting in 5s"
+    setTimeout =>
+      @connect @host, @port, @cb
+    , 5000
   
   listen: (host="127.0.0.1", port=44445, cb) ->
     [port, cb] = [44445, port] if typeof port is 'function'
