@@ -1,11 +1,11 @@
 Node = require '../lib/node'
 
-node = Node('childkiller').connect 'localhost'
+node = Node('childkiller').connect 'localhost', process.argv[2]
 
 WINDOW = 12
 avgs = {}
 
-node.on 'metric', ({data: {resource, metrics}}) ->
+node.on 'metric', ({resource, data: metrics}) ->
   if metrics.children
     for child in metrics.children
       avgs[child.pid] ||= []

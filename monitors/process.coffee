@@ -3,20 +3,18 @@ fs   = require 'fs'
 proc = require 'proc'
 Node  = require '../lib/node'
 
-STATEMAP = {R: "running", S:"sleeping", D:"disk sleep", Z:"zombie", T:"stopped", W:"paging"}
+STATEMAP = {R:"running", S:"sleeping", D:"disk sleep", Z:"zombie", T:"stopped", W:"paging"}
 
 CHECK_INTERVAL = 5000
 
-services = {}
+node = Node('process monitor').connect 'localhost', process.argv[2]
 
-node = Node('process monitor').connect 'localhost'
+node.on 'add resource', (msg) ->
+  res = msg.data
+  if res?.pidFile
+    node.resource msg.resource, res 
 
-node.on 'add resource', ({data: service}) ->
-  if service.pidFile
-    services[service.name] = service 
-
-node.on 'remove resource', ({data: service}) ->
-  delete services[service.name]
+node.on 'remove resource', (msg) -> node.unresource msg.resource
 
 
 oldTicks = {}
@@ -49,14 +47,15 @@ procToMetrics = (p) ->
 
 setInterval ->
   proc (err, procs) ->
-    for name, service of services
-      pid = service.pidFile && fs.existsSync(service.pidFile) && parseInt fs.readFileSync service.pidFile, 'utf8'
+    #console.log "node.resources is", node.resources
+    for name, res of node.resources
+      pid = res.pidFile && fs.existsSync(res.pidFile) && parseInt fs.readFileSync res.pidFile, 'utf8'
       running = pid? && procs[pid]? 
 
       if running
-        node.send "metric", resource: name, metrics: procToMetrics procs[pid]
+        res.send "metric", procToMetrics procs[pid]
       else
-        node.send "metric", resource: name, metrics: {running}
+        res.send "metric", {running}
 
 
 , CHECK_INTERVAL

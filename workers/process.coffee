@@ -19,7 +19,7 @@ run = (cmd, extra_opts, cb) ->
 
 services = {}
 
-node = Node('process worker').connect 'localhost'
+node = Node('process worker').connect 'localhost', process.argv[2]
 
 node.on 'add resource', ({data: service}) ->
   #console.log "adding service", service 

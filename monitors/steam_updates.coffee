@@ -4,7 +4,7 @@ path = require 'path'
 {exec, spawn} = require 'child_process'
 Node  = require '../lib/node'
 
-node = Node('steam updates monitor').connect 'localhost'
+node = Node('steam updates monitor').connect 'localhost', process.argv[2]
 
 watchers = {}
 
@@ -18,11 +18,11 @@ watch = (file, cb) ->
     ,500
   child
 
-node.on 'add resource', ({data: res}) ->
+node.on 'add resource', ({resource: name, data: res}) ->
   if res.steamDir
     watchFile = path.join res.steamDir, "logs", "content_log.txt"
 
-    watchers[res.name] ||= watch watchFile, (data) ->
+    watchers[name] ||= watch watchFile, (data) ->
       for line in data.split '\n'
         #node.send "got data", data.trim()
         if match = line.match /\[(.*?)\] (.*)/
@@ -31,17 +31,17 @@ node.on 'add resource', ({data: res}) ->
 
           if match = msg.match /AppID (\d+) state changed : (.*?) = (.*)/
             [_, appid, stateCode, states] = match
-            node.send "metric", resource: res.name, metrics: steam: {appid, stateCode, states:states.split(',')}, time: time.toISOString()
+            node.send "metric", resource: name, metrics: steam: {appid, stateCode, states:states.split(',')}, time: time.toISOString()
           
           if match = msg.match /Scheduler update appID (\d+)/
-            node.send "steam update", name: res.name, time: time.toISOString()
+            node.send "steam update", name: name, time: time.toISOString()
 
           if match = msg.match /Scheduler finished appID (\d+)/
-            node.send "steam update finished", name: res.name, time: time.toISOString()
+            node.send "steam update finished", name: name, time: time.toISOString()
 
 
-node.on 'remove resource', ({data: res}) ->
-  delete watchers[res]
+node.on 'remove resource', ({resource: name}) ->
+  delete watchers[name]
 
 
 # setInterval ->

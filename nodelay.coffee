@@ -5,14 +5,14 @@ EventEmitter = require('events').EventEmitter
 path = require 'path'
 fs = require 'fs'
 
-forkCoffee = (script, options={}) ->
+forkCoffee = (script, args, options={}) ->
   coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
   [oldExecPath, process.execPath] = [process.execPath, coffeePath]
   if not fs.existsSync script
     script = path.join __dirname, script
     options.cwd ?= __dirname
 
-  child = fork script, [], options
+  child = fork script, args, options
   
   process.execPath = oldExecPath
   child
@@ -35,7 +35,7 @@ class Nodelay extends EventEmitter
       instance: this
       node: @node
       upstream: (host, port) => @upstream = {host, port}
-      bind: (@bind) =>
+      bind: (@bind, @port) =>
       proxy: (proxy) =>
         @proxy.in.push proxy.in... if proxy.in
         @proxy.out.push proxy.out... if proxy.out
@@ -61,33 +61,42 @@ class Nodelay extends EventEmitter
         @emit "connected"
         if @privkey
           @node.send type: 'auth', signed: true  
-    #console.log "upstream is", @host, @pubport, @subport
 
-    console.log @node.parent
+    @node.listen @bind, @port
+    @node.parent.on '*', (msg) =>
+      if typeof msg?.resource is 'object' and msg instanceof Array and msg[0] == @name
+        msg.resource.shift()
 
-    @node.listen @bind or '127.0.0.1'
-    @node.parent.on '*', (msg) => @node.children.forward
+      @node.children.forward msg
+
     @node.children.on '*', @node.children.forward
-    @node.children.on '*', (msg) => @node.parent.forward msg if @proxy.out and msg.type in @proxy.out
 
-    @node.children.on 'metric', (msg) =>
+    @node.children.on '*', (msg) =>
       msg = JSON.parse(JSON.stringify(msg))
-      msg.data.resource = msg.data.resource + "@" + @name
       if typeof msg.from is "object"
-        msg.unshift @name
+        msg.from.unshift @name
+      else if typeof msg.from is "undefined"
+        msg.from = @name
       else
         msg.from = [@name, msg.from]
+
+      if typeof msg.resource is 'object' and msg instanceof Array
+        msg.resource.unshift @name
+      else if typeof msg.resource isnt 'undefined'
+        msg.resource = [@name, msg.resource]
+
       @node.parent.forward msg
 
-#    @node.on '*', (msg) => @node.forward (msg) i:f !@proxy or msg.type in @proxy
- 
-    forkCoffee "controllers/#{controller}.coffee" for controller in @controllers
-    forkCoffee "workers/#{worker}.coffee" for worker in @workers
-    forkCoffee "monitors/#{monitor}.coffee" for monitor in @monitors
+    args = if @port then [@port] else []
+    forkCoffee "controllers/#{controller}.coffee", args for controller in @controllers
+    forkCoffee "workers/#{worker}.coffee", args for worker in @workers
+    forkCoffee "monitors/#{monitor}.coffee", args for monitor in @monitors
 
     setTimeout =>
       #console.log "resources:", @resources
-      @node.send "add resource", resource for name, resource of @resources
+      for name, resource of @resources
+        @node.children.send type: "add resource", resource: name, data: resource
+        @node.parent.send type: "add resource", resource: [@name, name], data: resource
     , 2000
 
 
