@@ -60,7 +60,7 @@ class Nodelay extends EventEmitter
       @node.connect @upstream.host, @upstream.port, =>
         @emit "connected"
         if @privkey
-          @node.send type: 'auth', signed: true  
+          @node.send type: 'auth', signed: true, scope: 'local'
 
     @node.listen @bind, @port
     @node.parent.on '*', (msg) =>
@@ -70,6 +70,7 @@ class Nodelay extends EventEmitter
       @node.children.forward msg
 
     @node.children.on '*', @node.children.forward
+    #@node.children.on 'listen', (msg) =>
 
     @node.children.on '*', (msg) =>
       msg = JSON.parse(JSON.stringify(msg))

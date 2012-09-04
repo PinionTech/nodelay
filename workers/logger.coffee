@@ -8,6 +8,11 @@ RESET = '\u001b[0m'
 node = Node('logger').connect 'localhost', process.argv[2]
 
 node.on '*', (msg) ->
+  if msg.type is 'metric'
+    x = 0
+    x++ for k of msg.data
+    return if x is 0 
+
   from = if typeof msg.from is 'object' then msg.from.join('>') else msg.from
   res = if typeof msg.resource is 'object' then msg.resource.join('>') else msg.resource
   header = "[#{from}: #{RED}#{msg.type} #{BLUE}#{res or ''}#{RESET}]"

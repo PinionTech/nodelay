@@ -1,12 +1,59 @@
+jsondiffpatch = require 'jsondiffpatch'
 crypto = require 'crypto'
 EventEmitter = require('events').EventEmitter
 ws = require 'ws'
+_ = require 'underscore'
 
 HASH_ALG = 'sha256'
 
 extend = (foo, bar) -> foo[k] = v for own k, v of bar
 
-class Node extends EventEmitter
+
+matches = (obj, match) ->
+  for k, matchv of match
+    objv = obj[k]
+    if typeof objv is 'object' and typeof matchv is 'object'
+      return false unless matches objv, matchv
+    else
+      return false unless objv is matchv or matchv is '*'
+  
+  return true
+
+
+
+class MsgEmitter
+  on: (matcher, cb) ->
+    matcher = {type: matcher} if typeof matcher is 'string'
+
+    @listeners ?= []
+    
+    for listener in @listeners
+      return listener.cbs.push cb if _.isEqual listener.matcher, matcher
+
+    @listeners.push {matcher, cbs:[cb]}
+
+  removeListener: (cb) ->
+    return unless @listeners
+    remove = []
+    for listener, i in @listeners
+      i = indexOf cb, listener.cbs
+      listener.cbs.splice i, 1 if i >= 0
+      remove.push i
+
+    @listeners.splice i, 1 for i in remove
+
+  removeAllListeners: -> @listeners = []
+  
+  emit: (msg, args...) ->
+    return unless @listeners
+    for listener in @listeners
+      #console.log "msg", msg
+      #console.log "matcher", listener.matcher
+      #console.log "matches?", matches msg, listener.matcher
+      if matches msg, listener.matcher
+        cb(msg, args...) for cb in listener.cbs
+
+class Node extends MsgEmitter
   @connect = (args...) -> Node().connect args...
   @listen = (args...) -> Node().listen args...
   
@@ -15,7 +62,7 @@ class Node extends EventEmitter
 
     @name = name or Math.random().toFixed(10).slice(2)
 
-    @parent = new EventEmitter
+    @parent = new MsgEmitter
     extend @parent,
       send: (type, data) => @parent.sendRaw @buildMsg type, data
       sendRaw: (msg) =>
@@ -23,7 +70,7 @@ class Node extends EventEmitter
           @ws.send JSON.stringify msg
       forward: (msg) => @parent.sendRaw msg
 
-    @children = new EventEmitter
+    @children = new MsgEmitter
     extend @children, 
       send: (type, data) => @children.sendRaw @buildMsg type, data
       sendRaw: (msg) =>
@@ -119,13 +166,9 @@ class Node extends EventEmitter
         return
 
 
-    @emit '*', msg
+    @emit msg
     specific = if sender is @ws then @parent else @children
-    specific.emit '*', msg
-
-    if msg.type
-      @emit msg.type, msg
-      specific.emit msg.type, msg
+    specific.emit msg
 
   resource: (name, data) ->
     @resources[name] ||= new Resource name, this, data
@@ -135,6 +178,31 @@ class Node extends EventEmitter
     if @resources[name]
       @resources[name].cleanup()
       delete @resources[name]
+
+
+onlyChanges = (older, newer) ->
+  # Too hard basket
+  return newer if older instanceof Array or newer instanceof Array
+
+  obj = {}
+  changed = false
+  for k of older 
+    if typeof older[k] is 'object' and typeof newer[k] is 'object'
+      changes = onlyChanges older[k], newer[k]
+      if changes
+        obj[k] = changes
+        changed = true
+    else
+      if newer[k] != older[k]        
+        obj[k] = newer[k]
+        changed = true
+  for k of newer
+    unless obj[k]? or older[k]?
+      obj[k] = newer[k]
+      changed = true
+
+  if changed then obj else null
+
 
 class Resource
   constructor: (name, node, data) ->
@@ -150,6 +218,16 @@ class Resource
       fn(msg) if msg.resource is @name
     @node.on ev, cb
     listeners.push {ev, cb}
+
+  metric: (metric) ->
+    if !@oldMetric
+      @send 'metric', metric
+    else
+      #console.log "diff", @oldmetric, metric
+      changes = jsondiffpatch.diff @oldMetric, metric
+      #changes = onlyChanges @oldMetric, metric
+      @send 'metric', changes
+    #@oldMetric = metric
 
   send: (type, data) ->
     msg = @node.buildMsg type, data

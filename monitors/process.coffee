@@ -56,9 +56,9 @@ setInterval ->
       running = pid? && procs[pid]? 
 
       if running
-        res.send "metric", procToMetrics procs[pid]
+        res.metric procToMetrics procs[pid]
       else
-        res.send "metric", {running}
+        res.metric {running}
 
 
 , CHECK_INTERVAL

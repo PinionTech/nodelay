@@ -11,6 +11,7 @@
   "dependencies": {
     "proc": "git://github.com/PinionTech/proc-node.git",
     "optimist": "*",
+    "underscore": "*",
     "coffee-script": "*",
     "ws": "*",
     "assert": "*"
