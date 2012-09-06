@@ -40,6 +40,7 @@ class Nodelay extends EventEmitter
         @proxy.in.push proxy.in... if proxy.in
         @proxy.out.push proxy.out... if proxy.out
       on: @on
+      scope: (@scope...) =>
       workers: (@workers...) =>
       monitors: (@monitors...) =>
       controllers: (@controllers...) =>
@@ -63,11 +64,15 @@ class Nodelay extends EventEmitter
           @node.send type: 'auth', signed: true, scope: 'local'
 
     @node.listen @bind, @port
-    @node.parent.on '*', (msg) =>
-      if typeof msg?.resource is 'object' and msg instanceof Array and msg[0] == @name
-        msg.resource.shift()
+    
 
-      @node.children.forward msg
+    # if @scope
+
+    #   @node.parent.on '*', (msg) =>
+    #     if typeof msg?.resource is 'object' and msg instanceof Array and msg[0] == @name
+    #       msg.resource.shift()
+
+    #     @node.children.forward msg
 
     @node.children.on '*', @node.children.forward
     #@node.children.on 'listen', (msg) =>
@@ -86,7 +91,7 @@ class Nodelay extends EventEmitter
       else if typeof msg.resource isnt 'undefined'
         msg.resource = [@name, msg.resource]
 
-      @node.parent.forward msg
+      @node.parent?.forward msg
 
     args = if @port then [@port] else []
     forkCoffee "controllers/#{controller}.coffee", args for controller in @controllers
@@ -96,8 +101,8 @@ class Nodelay extends EventEmitter
     setTimeout =>
       #console.log "resources:", @resources
       for name, resource of @resources
-        @node.children.send type: "add resource", resource: name, data: resource
-        @node.parent.send type: "add resource", resource: [@name, name], data: resource
+        @node.children?.send type: "add resource", resource: name, data: resource
+        @node.parent?.send type: "add resource", resource: [@name, name], data: resource
     , 2000
 
 
