@@ -61,24 +61,30 @@ class Nodelay extends EventEmitter
       @node.connect @upstream.host, @upstream.port, =>
         @emit "connected"
         if @privkey
-          @node.send type: 'auth', signed: true, scope: 'local'
+          @node.send type: 'auth', signed: true, scope: 'link'
 
     @node.listen @bind, @port
     
 
-    # if @scope
+    if @scope
+      @node.parent?.on {resource: @scope}, (msg) =>
+        return if msg.scope is 'link'
+        
+        if typeof msg?.resource is 'object' and msg instanceof Array
+          for scope in @scope
+            break unless msg[0] == @scope
+            msg.resource.shift()
 
-    #   @node.parent.on '*', (msg) =>
-    #     if typeof msg?.resource is 'object' and msg instanceof Array and msg[0] == @name
-    #       msg.resource.shift()
+        @node.children.forward msg
+    else
+      @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
 
-    #     @node.children.forward msg
-
-    @node.children.on '*', @node.children.forward
+    @node.children.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
     #@node.children.on 'listen', (msg) =>
 
     @node.children.on '*', (msg) =>
-      msg = JSON.parse(JSON.stringify(msg))
+      return if msg.scope is 'link'
+      msg = JSON.parse JSON.stringify msg
       if typeof msg.from is "object"
         msg.from.unshift @name
       else if typeof msg.from is "undefined"
@@ -86,10 +92,9 @@ class Nodelay extends EventEmitter
       else
         msg.from = [@name, msg.from]
 
-      if typeof msg.resource is 'object' and msg instanceof Array
-        msg.resource.unshift @name
-      else if typeof msg.resource isnt 'undefined'
-        msg.resource = [@name, msg.resource]
+      if @scope and msg.resource
+        msg.resource = [msg.resource] if typeof msg.resource is 'string'                
+        msg.resource.unshift @scope...
 
       @node.parent?.forward msg
 

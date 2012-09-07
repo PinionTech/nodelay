@@ -14,6 +14,10 @@ matches = (obj, match) ->
     objv = obj[k]
     if typeof objv is 'object' and typeof matchv is 'object'
       return false unless matches objv, matchv
+    else if k is 'resource' and _.isArray objv
+      matchv = [matchv] if typeof matchv is 'string'
+      for res, i of matchv
+        return false if objv[i] isnt res
     else
       return false unless objv is matchv or matchv is '*'
   
@@ -23,7 +27,6 @@ matches = (obj, match) ->
 
 class MsgEmitter
   on: (matcher, cb) ->
-    #console.log "listening to", cb
     matcher = {type: matcher} if typeof matcher is 'string'
 
     @listeners ?= []
@@ -56,12 +59,8 @@ class MsgEmitter
 
   emit: (msg) ->
     return unless @listeners
-    for listener in @listeners
-      #console.log "msg", msg
-      #console.log "matcher", listener.matcher
-      #console.log "matches?", matches msg, listener.matcher
-      if matches msg, listener.matcher
-        cb(msg) for cb in listener.cbs
+    for listener in @listeners when matches msg, listener.matcher
+      cb(msg) for cb in listener.cbs
 
 class Parent extends MsgEmitter
   constructor: (@node, host, port, cb) ->
@@ -97,9 +96,10 @@ class Parent extends MsgEmitter
     else
       #console.log @node.name, "dropping message", msg
 
-  forward: (msg) => @parent.sendRaw msg
+  forward: (msg) => @sendRaw msg
 
   recv: (data, client) =>
+    #console.log "child", @node.name, "received", data
     msg = @node.processMsg data, client
     return unless msg
     @emit msg
@@ -119,35 +119,43 @@ class Children extends MsgEmitter
     console.log @node.name, "listening on", host, "port", port
     @wss = new ws.Server {host, port}
     @wss.on 'connection', (client) =>
-      if @auth and client._socket.remoteAddress == '127.0.0.1'
+      if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
       client.on 'message', (msg) => @recv msg, client
     this
 
   recv: (data, client) =>
+    #console.log "parent", @node.name, "received", data
     msg = @node.processMsg data, client
     return unless msg
-    if @node.auth and !client.authed
+
+    if @node.auth and !client.authed and (msg.type isnt 'listen' or msg.scope isnt 'link')
       if msg.type is "auth" and msg.signed and @node.auth msg.data
-        sender.authed = true
+        client.authed = true
       else
-        sender.close()
+        client.close()
         return
 
     @emit msg
     if msg.type is "listen"
-      cb = (rmsg) ->
-        client.send JSON.stringify rmsg
+      if @node.auth        
+        cb = (rmsg) ->
+          #console.log "client authed?", client.authed
+          client.send JSON.stringify rmsg if client.authed
+      else
+        cb = (rmsg) -> client.send JSON.stringify rmsg
       @outEmitter.on msg.data, cb
       client.on "close", => @outEmitter.removeListener cb
 
 
   send: (type, data) => @sendRaw @node.buildMsg type, data
  
-  sendRaw: (msg) -> @outEmitter.emit msg
+  sendRaw: (msg) ->
+    @outEmitter.emit msg
 
-  forward: (msg) => @sendRaw msg
+  forward: (msg) =>
+    @sendRaw msg
 
 
 class Node
