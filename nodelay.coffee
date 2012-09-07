@@ -50,7 +50,7 @@ class Nodelay extends EventEmitter
       pubkey: (pubkey) =>
         @pubkey = fs.readFileSync(pubkey)
         @node.pubkey = @pubkey
-        @node.auth = (msg) -> console.log "got auth msg", msg; true
+        @node.auth = (msg) -> true
       resource: (name, resource) =>
         resource.name = name
         @resources[name] = resource

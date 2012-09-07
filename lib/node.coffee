@@ -131,9 +131,11 @@ class Children extends MsgEmitter
     return unless msg
 
     if @node.auth and !client.authed and (msg.type isnt 'listen' or msg.scope isnt 'link')
-      if msg.type is "auth" and msg.signed and @node.auth msg.data
+      if msg.type is "auth" and msg.signed and @node.auth msg
+        console.log "accepted auth from", msg.from
         client.authed = true
       else
+        console.log "rejected auth from", msg.from
         client.close()
         return
 
