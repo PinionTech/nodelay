@@ -86,17 +86,20 @@ class MsgEmitter
     for listener in @listeners when msgMatches msg, listener.matcher, @node?.resources
       cb(msg) for cb in listener.cbs
 
-class Parent extends MsgEmitter
+class Parent extends EventEmitter
   constructor: (@node, host, port, cb) ->
-    @listeners = []
+    @listeners = {}
+    @tag = 0
     @connect host, port, cb
+    @matchers = {}
 
   connect: (@host, @port, @cb) ->
     console.log @node.name, "connecting to", @host, "on", @port
     @ws = new ws "ws://#{host}:#{port}"
     @ws.on 'message', (data) => @recv data, @ws
     @ws.on 'open', =>
-      @eachMatcher (m) => @send type: "listen", scope: "link", data: m
+      for tag, matcher of @matchers
+        @send type: "listen", scope: "link", data: matcher, tag: tag
       @cb() if @cb
     @ws.on 'close', =>
       console.log @node.name, "connection closed"
@@ -129,11 +132,15 @@ class Parent extends MsgEmitter
     #console.log "child", @node.name, "received", data
     msg = @node.processMsg data, client
     return unless msg
-    @emit msg
+    @emit msg.tag, msg
 
   on: (matcher, cb) ->
-    super matcher, cb
-    @send type: "listen", scope: "link", data: matcher
+    tag = @tag++
+    super tag, cb
+    @matchers[tag] = matcher
+    @send type: "listen", scope: "link", data: matcher, tag: tag
+
+  #TODO: removeListener, removeAllListeners (should invalidate @matchers)
 
 
 class Children extends MsgEmitter
@@ -150,7 +157,7 @@ class Children extends MsgEmitter
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
-      client.setMaxListeners 100
+      client.setMaxListeners 100 #TODO: do I really need this? Am I doing something dumb?
       client.on 'message', (msg) => @recv msg, client
     this
 
@@ -169,13 +176,20 @@ class Children extends MsgEmitter
         return
 
     @emit msg
+    
     if msg.type is "listen"
+      tag = msg.tag
       if @node.auth        
-        cb = (rmsg) ->
+        cb = (rmsg) ->          
           #console.log "client authed?", client.authed
+          rmsg = JSON.parse JSON.stringify rmsg
+          rmsg.tag = tag
           client.send JSON.stringify rmsg if client.authed
       else
-        cb = (rmsg) -> client.send JSON.stringify rmsg
+        cb = (rmsg) ->
+          rmsg = JSON.parse JSON.stringify rmsg
+          rmsg.tag = rmsg.tag
+          client.send JSON.stringify rmsg
       @outEmitter.on msg.data, cb
       client.on "close", => @outEmitter.removeListener cb
 
