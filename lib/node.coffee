@@ -18,16 +18,13 @@ msgMatches = (msg, match, resources) ->
     else if k is 'resource'
       #console.log "matching resource", objv, matchv, (typeof matchv), (not (matchv instanceof Array))
       if typeof matchv is 'object' and not (matchv instanceof Array)
-        console.log "looking for", msg.resource, "in", resources.data
         resource = resources?.at(msg.resource)
-        #console.log "resource", resource
         return false unless resource
-        console.log "matching resource decl", matchv, "against", resource.data
 
         return false unless matches resources.at(msg.resource).data, matchv
       else if objv instanceof Array
         matchv = [matchv] if typeof matchv is 'string'
-        for res, i of matchv
+        for res, i in matchv
           return false if objv[i] isnt res
       else
         return false
@@ -82,7 +79,6 @@ class MsgEmitter
 
   emit: (msg) ->
     return unless @listeners
-    console.log @node?.name, "resources is", @node?.resources.data
     for listener in @listeners when msgMatches msg, listener.matcher, @node?.resources
       cb(msg) for cb in listener.cbs
 
@@ -129,7 +125,6 @@ class Parent extends EventEmitter
   forward: (msg) => @sendRaw msg
 
   recv: (data, client) =>
-    #console.log "child", @node.name, "received", data
     msg = @node.processMsg data, client
     return unless msg
     @emit msg.tag, msg
@@ -179,8 +174,8 @@ class Children extends MsgEmitter
     
     if msg.type is "listen"
       tag = msg.tag
-      if @node.auth        
-        cb = (rmsg) ->          
+      if @node.auth
+        cb = (rmsg) ->
           #console.log "client authed?", client.authed
           rmsg = JSON.parse JSON.stringify rmsg
           rmsg.tag = tag
@@ -188,7 +183,7 @@ class Children extends MsgEmitter
       else
         cb = (rmsg) ->
           rmsg = JSON.parse JSON.stringify rmsg
-          rmsg.tag = rmsg.tag
+          rmsg.tag = tag
           client.send JSON.stringify rmsg
       @outEmitter.on msg.data, cb
       client.on "close", => @outEmitter.removeListener cb

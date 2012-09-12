@@ -111,6 +111,7 @@ class Resource
 
   watch: (updateCB) ->
     @updateCB = updateCB if updateCB
+    #console.log @node.name, "listening for resource updates on", @path
     @node.on {type: "resource update", resource: @path}, @handleResourceUpdate
     @node.on {type: "resource update request", resource: @path}, @handleUpReq
 
@@ -121,15 +122,12 @@ class Resource
     path.slice(i)
 
   handleResourceUpdate: ({resource, merge, data}) =>
-    #console.log "got resource update for path", resource, "data", data
+    #console.log @node.name, "got resource update for", resource
     path = @scopePath resource
-    #console.log "updated resource path", path
     res = @sub path #@scopePath resource
-    #console.log "subresource path", res.path, "data", res.data
     res.merge data, merge
 
     @updateCB? this, @data #res, msg.data
-    #console.log "node.resources", @node.resources.data
     res
 
   handleUpReq: ({resource, merge, data, scope, from}) =>
@@ -157,7 +155,7 @@ class Selector
     resource = [resource] if typeof resource is 'string'
     strForm = resource.join '\x1f'
     if !@matchedResources[strForm]
-      console.log @node.name, "adding new resource", resource
+      #console.log @node.name, "adding new resource", resource
       res = @node.resources.sub resource
       res.watch(@updateCB)
       res.handleResourceUpdate {resource, merge, data}

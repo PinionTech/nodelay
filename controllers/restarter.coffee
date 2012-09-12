@@ -6,7 +6,7 @@ debounce = {}
 
 node.resource restart: true, (res) ->
   resPath = res.path.join('\x1f')
-  if !res.data.running and res.data.process and !debounce[resPath]
+  if res.data.running is false and !debounce[resPath]
     res.send 'start'
     debounce[resPath] = true
     setTimeout ->
