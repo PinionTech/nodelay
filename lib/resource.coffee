@@ -49,7 +49,7 @@ class Resource
   at: (path) ->
     cur = @data
     path = Array.prototype.slice.apply(arguments) if typeof path is 'string'
-    for comp of path
+    for comp in path
       cur = cur[comp]
       return null unless cur?
     

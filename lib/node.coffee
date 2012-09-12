@@ -12,16 +12,25 @@ extend = (foo, bar) -> foo[k] = v for own k, v of bar
 
 msgMatches = (msg, match, resources) ->
   for k, matchv of match
-    objv = obj[k]
-    if typeof objv is 'object' and typeof matchv is 'object'
+    objv = msg[k]
+    if typeof objv is 'object' and typeof matchv is 'object' and k isnt 'resource'
       return false unless matches objv, matchv
-    else if k is 'resource' and typeof objv is 'object'
-      if objv instanceof Array
+    else if k is 'resource'
+      #console.log "matching resource", objv, matchv, (typeof matchv), (not (matchv instanceof Array))
+      if typeof matchv is 'object' and not (matchv instanceof Array)
+        console.log "looking for", msg.resource, "in", resources.data
+        resource = resources?.at(msg.resource)
+        #console.log "resource", resource
+        return false unless resource
+        console.log "matching resource decl", matchv, "against", resource.data
+
+        return false unless matches resources.at(msg.resource).data, matchv
+      else if objv instanceof Array
         matchv = [matchv] if typeof matchv is 'string'
         for res, i of matchv
           return false if objv[i] isnt res
       else
-        return false unless matches resources.at(msg.resource) matchv
+        return false
     else
       return false unless objv is matchv or matchv is '*'
   
@@ -73,7 +82,8 @@ class MsgEmitter
 
   emit: (msg) ->
     return unless @listeners
-    for listener in @listeners when msgMatches msg, listener.matcher, @node.resources
+    console.log @node?.name, "resources is", @node?.resources.data
+    for listener in @listeners when msgMatches msg, listener.matcher, @node?.resources
       cb(msg) for cb in listener.cbs
 
 class Parent extends MsgEmitter
@@ -130,6 +140,7 @@ class Children extends MsgEmitter
   constructor: (@node, host, port, cb) ->
     @listeners = []
     @outEmitter = new MsgEmitter
+    @outEmitter.node = @node
     @listen host, port, cb
 
   listen: (@host, @port, cb) ->
