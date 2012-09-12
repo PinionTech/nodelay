@@ -16,7 +16,6 @@ oldTicks = {}
 procToMetrics = (p) ->
   m = {}
 
-  m.running = true
   m.pid = p.pid
   m.stateCode = p.state
   m.state = STATEMAP[p.state]
@@ -41,12 +40,13 @@ procToMetrics = (p) ->
 setInterval ->
   proc (err, procs) ->
     #console.log "node.resources is", node.resources
-    selector.resources.each (path, res) ->
-      proc = res.data
-      pid = proc.pidFile && fs.existsSync(proc.pidFile) && parseInt fs.readFileSync proc.pidFile, 'utf8'
-      running = pid? && procs[pid]? 
+    selector.each (path, res) ->
+      #console.log "res is", res
+      data = res.data
+      pid = data.pidFile && fs.existsSync(data.pidFile) && parseInt fs.readFileSync data.pidFile, 'utf8'
+      running = pid? && procs[pid]?
 
-      wasRunning = res.data.running
+      wasRunning = data.running
       res.update {running}
 
       res.send 'up' if running and !wasRunning

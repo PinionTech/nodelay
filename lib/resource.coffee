@@ -16,7 +16,7 @@ onlyChanges = (older, newer) ->
         obj[k] = changes
         changed = true
     else
-      if newer[k] != older[k]        
+      if newer[k] != older[k]
         obj[k] = newer[k]
         changed = true
   for k of newer
@@ -29,8 +29,9 @@ onlyChanges = (older, newer) ->
 
 
 deepMerge = (dst, src) ->
+  #console.log "deepmerging", src, "into", dst
   for k, srcv of src
-    dstv = dst[k]    
+    dstv = dst[k]
     if typeof dstv is 'object' and typeof srcv is 'object'
       deepMerge dstv, srcv
     else
@@ -56,9 +57,13 @@ class Resource
 
 
   sub: (path) ->
+    #console.log "descending from ", @path, "into", path
     cur = @data
+    #console.log "data is", @data
+    #console.log "@#*@&#(@*%" if @data[0]
     path = Array.prototype.slice.apply(arguments) if typeof path is 'string'
-    for comp of path
+    
+    for comp in path
       cur[comp] ||= {}
       cur = cur[comp]
     
@@ -91,26 +96,39 @@ class Resource
 
   on: (selector, cb) ->
     resMatcher = {}
-    resMatcher[k] = v for k, v of matcher
-    resMatcher.resource = @path
+    if typeof selector is 'object'
+      resMatcher[k] = v for k, v of selector
+    else if typeof selector is 'string'
+      resMatcher.type = selector
+    else
+      console.warn "Invalid selector", selector
 
     resMatcher.resource = @path
 
     @node.on resMatcher, (msg) => cb this, msg
 
-  watch: (@updateCB) ->
-    @node.on {type: "resource update", @path}, @handleResourceUpdate
-    @node.on {type: "resource update request", @path}, @handleUpReq
+  watch: (updateCB) ->
+    @updateCB = updateCB if updateCB
+    @node.on {type: "resource update", resource: @path}, @handleResourceUpdate
+    @node.on {type: "resource update request", resource: @path}, @handleUpReq
 
   scopePath: (path) ->
-    for i, component in @path
-      break unless path[i] == component
+    for component, i in @path
+     #console.log "comparing", path[i], "with", component 
+     break unless path[i] == component
     path.slice(i)
 
-  handleResourceUpdate: ({resource, merge, data}) =>      
-    res = @sub @scopePath resource
+  handleResourceUpdate: ({resource, merge, data}) =>
+    #console.log "got resource update for path", resource, "data", data
+    path = @scopePath resource
+    #console.log "updated resource path", path
+    res = @sub path #@scopePath resource
+    #console.log "subresource path", res.path, "data", res.data
     res.merge data, merge
-    @updateCB res, data
+
+    @updateCB? this, @data #res, msg.data
+    #console.log "node.resources", @node.resources.data
+    res
 
   handleUpReq: ({resource, merge, data}) =>
     res = @check @scopePath resource
@@ -119,28 +137,32 @@ class Resource
 
 class Selector
   constructor: (@node, selector, @updateCB) ->
-    selector.type = "resource update"
-    @node.on selector, @handleMatchUpdate
+    matcher = {type: "resource update", data: selector}
+
+    console.log @node.name, "listening for", matcher
+    @node.on matcher, @handleMatchUpdate
+
 
     @resources = {}
     @matchedResources = {}
     @matchers = []
 
   handleMatchUpdate: ({resource, merge, data}) =>
-    resource = [resource] unless typeof resource is 'string'
+    resource = [resource] if typeof resource is 'string'
     strForm = resource.join '\x1f'
     if !@matchedResources[strForm]
+      console.log @node.name, "adding new resource", resource
       res = @node.resources.sub resource
       res.watch(@updateCB)
-      res.onResourceUpdate {resource, merge, data}
+      res.handleResourceUpdate {resource, merge, data}
 
       @matchedResources[strForm] = res
 
-      for {matcher, cb} in matchers
+      for {matcher, cb} in @matchers
         res.on matcher, cb
 
   on: (matcher, cb) ->
-    matchers.push {matcher, cb}
+    @matchers.push {matcher, cb}
     for path, res of @matchedResources
       res.on matcher, cb
 

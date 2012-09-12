@@ -5,9 +5,10 @@ node = Node('restarter').connect 'localhost', process.argv[2]
 debounce = {}
 
 node.resource restart: true, (res) ->
-  if !res.running and !debounce[resource]
+  resPath = res.path.join('\x1f')
+  if !res.data.running and res.data.process and !debounce[resPath]
     res.send 'start'
-    debounce[resource] = true
+    debounce[resPath] = true
     setTimeout ->
-      delete debounce[resource]
+      delete debounce[resPath]
     , 30 * 1000

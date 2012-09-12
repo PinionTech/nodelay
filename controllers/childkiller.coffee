@@ -6,6 +6,8 @@ WINDOW = 12
 avgs = {}
 
 node.resource process: '*', (res) ->
+  console.log res.data
+  return unless res.data.process.children
   for pid, child of res.data.process.children
     
     avgs[child.pid] ||= []

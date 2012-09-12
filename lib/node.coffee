@@ -20,7 +20,7 @@ matches = (obj, match) ->
       for res, i of matchv
         return false if objv[i] isnt res
     else
-      return false unless objv is matchv or matchv is '*'
+      return false unless objv is matchv or (matchv is '*' and objv isnt undefined)
   
   return true
 
@@ -126,6 +126,7 @@ class Children extends MsgEmitter
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
+      client.setMaxListeners 100
       client.on 'message', (msg) => @recv msg, client
     this
 

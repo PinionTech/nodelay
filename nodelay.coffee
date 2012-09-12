@@ -77,7 +77,7 @@ class Nodelay extends EventEmitter
 
         @node.children.forward msg
 
-      @node.parent.outFilter = (msg) ->
+      @node.parent?.outFilter = (msg) ->
         if msg.resource
           msg.resource = [msg.resource] if typeof msg.resource is 'string'                
           msg.resource.unshift @scope...
