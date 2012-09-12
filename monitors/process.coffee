@@ -9,16 +9,7 @@ CHECK_INTERVAL = 5000
 
 node = Node('process monitor').connect 'localhost', process.argv[2]
 
-node.on 'add resource', (msg) ->
-  return unless typeof msg.resource is 'string'
-  res = msg.data
-  if res?.pidFile
-    node.resource msg.resource, res 
-
-node.on 'remove resource', (msg) ->
-  return unless typeof msg.resource is 'string'
-  node.unresource msg.resource
-
+selector = node.resource pidFile: '*'
 
 oldTicks = {}
 
@@ -40,25 +31,31 @@ procToMetrics = (p) ->
     m.cpuUsage = (ticks - oldTicks[p.pid]) / (100 * (CHECK_INTERVAL / 1000))
   
   oldTicks[p.pid] = ticks
-
   
-  m.children = (procToMetrics(child) for pid, child of p.children)
+  m.children = {}
+  m.children[pid] = procToMetrics(child) for pid, child of p.children
 
   m
-
 
 
 setInterval ->
   proc (err, procs) ->
     #console.log "node.resources is", node.resources
-    for name, res of node.resources
-      pid = res.pidFile && fs.existsSync(res.pidFile) && parseInt fs.readFileSync res.pidFile, 'utf8'
+    selector.resources.each (path, res) ->
+      proc = res.data
+      pid = proc.pidFile && fs.existsSync(proc.pidFile) && parseInt fs.readFileSync proc.pidFile, 'utf8'
       running = pid? && procs[pid]? 
 
+      wasRunning = res.data.running
+      res.update {running}
+
+      res.send 'up' if running and !wasRunning
+      res.send 'down' if !running and wasRunning
+
+      process = res.sub('process')
       if running
-        res.metric procToMetrics procs[pid]
-      else
-        res.metric {running}
+        process.update procToMetrics(procs[pid]), 'clobber'
+
 
 
 , CHECK_INTERVAL

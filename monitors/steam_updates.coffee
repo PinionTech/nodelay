@@ -18,30 +18,25 @@ watch = (file, cb) ->
     ,500
   child
 
-node.on 'add resource', ({resource: name, data: res}) ->
-  return unless typeof name is 'string'
-  if res.steamDir
-    watchFile = path.join res.steamDir, "logs", "content_log.txt"
 
-    watchers[name] ||= watch watchFile, (data) ->
-      for line in data.split '\n'
-        #node.send "got data", data.trim()
-        if match = line.match /\[(.*?)\] (.*)/
-          time = new Date(match[1])
-          msg = match[2]
+# TODO: logic for matching which update goes with which server instance
 
-          if match = msg.match /AppID (\d+) state changed : (.*?) = (.*)/
-            [_, appid, stateCode, states] = match
-            node.send type: "metric", resource: name, data: steam: {appid, stateCode, states:states.split(',')}, time: time.toISOString()
-          
-          if match = msg.match /Scheduler update appID (\d+)/
-            node.send type: "steam update", resource: name, data: time: time.toISOString()
+node.resource steam: '*', (res) ->
+  steam = res.sub('steam')
+  watchFile = path.join steam.data.steamDir, "logs", "content_log.txt"
 
-          if match = msg.match /Scheduler finished appID (\d+)/
-            node.send type: "steam update finished", resource: name, data: time: time.toISOString()
+  watchers[res.data.name] ||= watch watchFile, (data) ->
+    for line in data.split '\n'
+      #node.send "got data", data.trim()
+      if match = line.match /\[(.*?)\] (.*)/
+        msg = match[2]
 
+        if match = msg.match /AppID (\d+) state changed : (.*?) = (.*)/
+          [_, appid, stateCode, states] = match
+          steam.update appid: {stateCode, states:states.split(',')}
+        
+        if match = msg.match /Scheduler update appID (\d+)/
+          res.send "steam update"
 
-node.on 'remove resource', ({resource: name}) ->
-  return unless typeof name is 'string'
-  delete watchers[name]
-
+        if match = msg.match /Scheduler finished appID (\d+)/
+          res.send "steam update finished"

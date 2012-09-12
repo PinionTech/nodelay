@@ -89,7 +89,10 @@ class Parent extends MsgEmitter
       @connect @host, @port, @cb
     , 5000
 
-  send: (type, data) => @sendRaw @node.buildMsg type, data
+  send: (type, data) =>
+    msg = @node.buildMsg type, data
+    @outFilter msg if @outFilter
+    @sendRaw msg
 
   sendRaw: (msg) =>
     if @ws and @ws.readyState == 1
@@ -170,7 +173,7 @@ class Node
 
     @name = name or Math.random().toFixed(10).slice(2)
 
-    @resources = {}
+    @resources = new Resource this, [], {}
 
   connect: (host, port=44445, cb) -> 
     [port, cb] = [44445, port] if typeof port is 'function'
@@ -238,14 +241,13 @@ class Node
     @parent?.on matcher, cb
     @children?.on matcher, cb
 
-  resource: (name, data) ->
-    @resources[name] ||= new Resource name, this, data
-    @resources[name]
-
-  unresource: (name) ->
-    if @resources[name]
-      @resources[name].cleanup()
-      delete @resources[name]
+  resource: (selector, cb) ->
+    selector = [selector] if typeof selector is 'string'
+    if typeof selector is 'object'
+      if selector.constructor is Array
+        @resources.sub selector
+      else
+        new Resource.Selector this, selector, cb
 
 
 module.exports = Node

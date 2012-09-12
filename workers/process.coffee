@@ -21,15 +21,13 @@ services = {}
 
 node = Node('process worker').connect 'localhost', process.argv[2]
 
-node.on 'add resource', ({resource, data: service}) ->
-  return unless typeof resource is 'string'
-  #console.log "adding service", service 
-  services[service.name] = service 
+services = node.resource({start: '*'})
 
-node.on 'remove resource', ({data: service}) ->
-  delete services[service.name]
+services.on 'start', (res) ->
+  start res
 
-start = (service, cb) ->
+start = (res, cb) ->
+  service = res.data
   console.log "starting", service
   opts = {}
   opts[k] = v for k, v of service when k in "cwd".split(" ")
@@ -45,38 +43,28 @@ start = (service, cb) ->
   # Don't use the process callback 'cause we don't know if the process terminates
   done()
 
-node.on 'start', ({resource}) ->
-  return unless typeof resource is 'string'
-  if service = services[resource]
-    start service
-
-
-stop = (service, cb) ->
+stop = (res, cb) ->
+  service = res.data
   console.log "stopping", service
   if service.stop
     run service.stop, cb
   else
     run "kill -- -`cat #{service.pidFile} | xargs ps --no-header -o pgrp -p`", cb
+  #if service.pidFile && fs.existsSync service.pidFile
+  #  fs.unlinkSync service.pidFile
 
-node.on 'stop', ({resource}) ->
-  return unless typeof resource is 'string'
-  if service = services[resource]
-    stop service
+services.on 'stop', (res) -> stop res
 
-    #if service.pidFile && fs.existsSync service.pidFile
-    #  fs.unlinkSync service.pidFile
+services.on 'restart', (res) ->
+  stop res, ->
+    setTimeout ->
+      start res
+    1000
 
 
-node.on 'restart', ({resource}) ->
-  return unless typeof resource is 'string'
-  if service = services[resource]
-    stop service, ->
-      setTimeout ->
-        start service
-      1000
 # This should probably go somewhere else
-node.on 'kill', ({resource, data: pid}) ->
-  return unless typeof resource is 'string'
+node.on 'kill', ({resource}) ->
+  console.log "trying to kill", resource
   run "kill -9 #{pid}"
 
 

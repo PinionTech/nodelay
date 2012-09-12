@@ -76,6 +76,12 @@ class Nodelay extends EventEmitter
             msg.resource.shift()
 
         @node.children.forward msg
+
+      @node.parent.outFilter = (msg) ->
+        if msg.resource
+          msg.resource = [msg.resource] if typeof msg.resource is 'string'                
+          msg.resource.unshift @scope...
+
     else
       @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
 
@@ -92,9 +98,9 @@ class Nodelay extends EventEmitter
       else
         msg.from = [@name, msg.from]
 
-      if @scope and msg.resource
-        msg.resource = [msg.resource] if typeof msg.resource is 'string'                
-        msg.resource.unshift @scope...
+      #if @scope and msg.resource
+      #  msg.resource = [msg.resource] if typeof msg.resource is 'string'                
+      #  msg.resource.unshift @scope...
 
       @node.parent?.forward msg
 
@@ -106,8 +112,11 @@ class Nodelay extends EventEmitter
     setTimeout =>
       #console.log "resources:", @resources
       for name, resource of @resources
-        @node.children?.send type: "add resource", resource: name, data: resource
-        @node.parent?.send type: "add resource", resource: [@name, name], data: resource
+        res = @node.resource name
+        res.update resource
+
+        #@node.children?.send type: "add resource", resource: name, data: resource
+        #@node.parent?.send type: "add resource", resource: [@name, name], data: resource
     , 2000
 
 
