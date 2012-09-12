@@ -32,7 +32,7 @@ procToMetrics = (p) ->
   oldTicks[p.pid] = ticks
   
   m.children = {}
-  m.children[pid] = procToMetrics(child) for pid, child of p.children
+  m.children[child.pid] = procToMetrics(child) for pid, child of p.children
 
   m
 

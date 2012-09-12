@@ -113,10 +113,10 @@ class Parent extends EventEmitter
 
   send: (type, data) =>
     msg = @node.buildMsg type, data
-    @outFilter msg if @outFilter
     @sendRaw msg
 
   sendRaw: (msg) =>
+    @outFilter msg if @outFilter
     if @ws and @ws.readyState == 1
       @ws.send JSON.stringify msg
     else
