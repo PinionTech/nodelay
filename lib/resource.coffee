@@ -46,7 +46,7 @@ clobber = (dst, src) ->
 class Resource
   constructor: (@node, @path, @data) ->
 
-  check: (path) ->
+  at: (path) ->
     cur = @data
     path = Array.prototype.slice.apply(arguments) if typeof path is 'string'
     for comp of path
@@ -79,15 +79,17 @@ class Resource
     @merge data, merge
     @sendUpdate data, merge
 
-  snapshot: ->
-    sendUpdate @data
+  snapshot: (opts) ->
+    sendUpdate @data, null, opts
 
-  sendUpdate: (data, merge) ->
+  sendUpdate: (data, merge, opts) ->
     # TODO: onlyChanges/diff/patch
-    if merge
-      @send type: "resource update", merge: merge, data: data
-    else
-      @send "resource update", data
+    msg = {}
+    msg[k] = v for k, v of opts
+    msg.type = "resource update"
+    msg.merge = merge if merge
+    msg.data = data
+    @send msg
 
   send: (type, data) ->
     msg = @node.buildMsg type, data
@@ -130,18 +132,22 @@ class Resource
     #console.log "node.resources", @node.resources.data
     res
 
-  handleUpReq: ({resource, merge, data}) =>
-    res = @check @scopePath resource
-    res?.snapshot()
+  handleUpReq: ({resource, merge, data, scope, from}) =>
+    res = @at @scopePath resource
+    opts = {}
+    opts.scope = 'link' if scope is 'link'
+    opts.to = from
+    res?.snapshot(opts)
 
 
 class Selector
   constructor: (@node, selector, @updateCB) ->
-    matcher = {type: "resource update", data: selector}
+    matcher = {type: "resource update", resource: selector}
 
     console.log @node.name, "listening for", matcher
     @node.on matcher, @handleMatchUpdate
 
+    @node.send type: "resource update request", scope: 'link'
 
     @resources = {}
     @matchedResources = {}

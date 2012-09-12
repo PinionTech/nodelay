@@ -114,6 +114,7 @@ class Nodelay extends EventEmitter
       for name, resource of @resources
         res = @node.resource name
         res.update resource
+        res.watch()
 
         #@node.children?.send type: "add resource", resource: name, data: resource
         #@node.parent?.send type: "add resource", resource: [@name, name], data: resource

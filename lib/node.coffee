@@ -10,15 +10,28 @@ HASH_ALG = 'sha256'
 extend = (foo, bar) -> foo[k] = v for own k, v of bar
 
 
+msgMatches = (msg, match, resources) ->
+  for k, matchv of match
+    objv = obj[k]
+    if typeof objv is 'object' and typeof matchv is 'object'
+      return false unless matches objv, matchv
+    else if k is 'resource' and typeof objv is 'object'
+      if objv instanceof Array
+        matchv = [matchv] if typeof matchv is 'string'
+        for res, i of matchv
+          return false if objv[i] isnt res
+      else
+        return false unless matches resources.at(msg.resource) matchv
+    else
+      return false unless objv is matchv or matchv is '*'
+  
+  return true
+
 matches = (obj, match) ->
   for k, matchv of match
     objv = obj[k]
     if typeof objv is 'object' and typeof matchv is 'object'
       return false unless matches objv, matchv
-    else if k is 'resource' and _.isArray objv
-      matchv = [matchv] if typeof matchv is 'string'
-      for res, i of matchv
-        return false if objv[i] isnt res
     else
       return false unless objv is matchv or (matchv is '*' and objv isnt undefined)
   
@@ -60,7 +73,7 @@ class MsgEmitter
 
   emit: (msg) ->
     return unless @listeners
-    for listener in @listeners when matches msg, listener.matcher
+    for listener in @listeners when msgMatches msg, listener.matcher, @node.resources
       cb(msg) for cb in listener.cbs
 
 class Parent extends MsgEmitter
