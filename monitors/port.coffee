@@ -22,7 +22,6 @@ getInfo = (cb) ->
       byProcess[pid][fields[0]] ||= []
       byProcess[pid][fields[0]].push port
 
-    byProcess[23936] = {tcp: [25015], udp: [25015]}
     cb byProcess
 
 
