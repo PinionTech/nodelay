@@ -33,7 +33,9 @@ node.resource steam: '*', (res) ->
 
         if match = msg.match /AppID (\d+) state changed : (.*?) = (.*)/
           [_, appid, stateCode, states] = match
-          steam.update appid: {stateCode, states:states.split(',')}
+          update = {}
+          update[appid] = {stateCode, states:states.split(',')}
+          steam.update update 
         
         if match = msg.match /Scheduler update appID (\d+)/
           res.send "steam update"
