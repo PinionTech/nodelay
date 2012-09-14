@@ -94,8 +94,15 @@ class Parent extends EventEmitter
     @ws = new ws "ws://#{host}:#{port}"
     @ws.on 'message', (data) => @recv data, @ws
     @ws.on 'open', =>
+      @node.send type: 'auth', signed: true, scope: 'link' if @node.privkey
+
       for tag, matcher of @matchers
         @send type: "listen", scope: "link", data: matcher, tag: tag
+      
+      # This should be in Resource via a listener or such
+      for name, data of @node.resources.data
+        @send type: "resource update", resource: "name", data: data
+
       @cb() if @cb
     @ws.on 'close', =>
       console.log @node.name, "connection closed"
@@ -116,8 +123,9 @@ class Parent extends EventEmitter
     @sendRaw msg
 
   sendRaw: (msg) =>
-    @outFilter msg if @outFilter
+    msg = @outFilter msg if @outFilter
     if @ws and @ws.readyState == 1
+      #console.log "child", @node.name, "sending", msg
       @ws.send JSON.stringify msg
     else
       #console.log @node.name, "dropping message", msg
@@ -127,7 +135,9 @@ class Parent extends EventEmitter
   recv: (data, client) =>
     msg = @node.processMsg data, client
     return unless msg
-    @emit msg.tag, msg
+    tag = msg.tag
+    delete msg.tag
+    @emit tag, msg
 
   on: (matcher, cb) ->
     tag = @tag++
@@ -174,6 +184,7 @@ class Children extends MsgEmitter
     
     if msg.type is "listen"
       tag = msg.tag
+      name = @node.name
       if @node.auth
         cb = (rmsg) ->
           #console.log "client authed?", client.authed

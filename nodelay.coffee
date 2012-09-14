@@ -71,8 +71,6 @@ class Nodelay extends EventEmitter
     if @upstream
       @node.connect @upstream.host, @upstream.port, =>
         @emit "connected"
-        if @privkey
-          @node.send type: 'auth', signed: true, scope: 'link'
 
     @node.listen @bind, @port
     
@@ -90,8 +88,10 @@ class Nodelay extends EventEmitter
 
       @node.parent?.outFilter = (msg) =>
         if msg.resource
+          msg = JSON.parse JSON.stringify msg
           msg.resource = [msg.resource] if typeof msg.resource is 'string'
           msg.resource.unshift @scope...
+        msg
 
     else
       @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
