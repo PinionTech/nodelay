@@ -28,7 +28,7 @@ services.on 'start', (res) ->
 
 start = (res, cb) ->
   service = res.data
-  console.log "starting", service
+  #console.log "starting", service
   opts = {}
   opts[k] = v for k, v of service when k in "cwd".split(" ")
   process = run service.start, opts
@@ -45,7 +45,7 @@ start = (res, cb) ->
 
 stop = (res, cb) ->
   service = res.data
-  console.log "stopping", service
+  #console.log "stopping", service
   if service.stop
     run service.stop, cb
   else
@@ -64,8 +64,8 @@ services.on 'restart', (res) ->
 
 # This should probably go somewhere else
 node.on 'kill', ({resource}) ->
-  console.log "trying to kill", resource
-  run "kill -9 #{pid}"
+  #console.log "trying to kill", resource
+  run "kill -9 #{resource[resource.length-1]}"
 
 
 

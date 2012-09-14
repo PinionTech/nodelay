@@ -31,8 +31,7 @@ procToMetrics = (p) ->
   
   oldTicks[p.pid] = ticks
   
-  m.children = {}
-  m.children[child.pid] = procToMetrics(child) for pid, child of p.children
+  m.children = (procToMetrics(child) for pid, child of p.children)
 
   m
 
@@ -49,8 +48,9 @@ setInterval ->
       wasRunning = data.running
       res.update {running}
 
-      res.send 'up' if running and !wasRunning
-      res.send 'down' if !running and wasRunning
+      if wasRunning?
+        res.send 'up' if running and !wasRunning
+        res.send 'down' if !running and wasRunning
 
       process = res.sub('process')
       if running
