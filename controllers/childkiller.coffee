@@ -2,7 +2,7 @@ Node = require '../lib/node'
 
 node = Node('childkiller').connect 'localhost', process.argv[2]
 
-WINDOW = 5 #12
+WINDOW = 12
 avgs = {}
 
 
