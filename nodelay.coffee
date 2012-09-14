@@ -13,9 +13,20 @@ forkCoffee = (script, args, options={}) ->
     options.cwd ?= __dirname
 
   child = fork script, args, options
+  child.on 'exit', (code, signal) -> handleRestart code, signal, script, args, options
   
   process.execPath = oldExecPath
   child
+
+
+handleRestart = (code, signal, script, args, options) ->
+  onedirname = path.join path.basename(path.dirname(script)), path.basename(script)
+  console.log onedirname, "exited with", if code then "code #{code}" else "signal #{signal}"
+  setTimeout ->
+    
+    console.log "restarting #{onedirname}"
+    forkCoffee script, args, options
+  ,5000
 
 class Nodelay extends EventEmitter
   constructor: (name, init) ->
