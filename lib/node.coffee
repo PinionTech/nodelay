@@ -101,7 +101,7 @@ class Parent extends EventEmitter
       
       # This should be in Resource via a listener or such
       for name, data of @node.resources.data
-        @send type: "resource update", resource: "name", data: data
+        @send type: "resource update", resource: name, data: data
 
       @cb() if @cb
     @ws.on 'close', =>
