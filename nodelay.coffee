@@ -79,9 +79,9 @@ class Nodelay extends EventEmitter
       @node.parent?.on {resource: @scope}, (msg) =>
         return if msg.scope is 'link'
         
-        if typeof msg?.resource is 'object' and msg instanceof Array
+        if typeof msg?.resource is 'object' and msg.resource instanceof Array
           for scope in @scope
-            break unless msg[0] == @scope
+            break unless msg.resource[0] == scope
             msg.resource.shift()
 
         #@node.resources.handleResourceUpdate msg if typeof msg is 'resource update'
@@ -98,6 +98,7 @@ class Nodelay extends EventEmitter
     else
       @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
 
+    #FIXME: this won't scope parent resources properly... maybe write @node.parent.inFilter
     @node.resources.watch()
 
     #@node.children.on 'resource update', @node.resources.handleResourceUpdate
