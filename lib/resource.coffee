@@ -145,8 +145,6 @@ class Selector
     #console.log @node.name, "listening for", matcher
     @node.on matcher, @handleMatchUpdate
 
-    @node.send type: "resource update request", scope: 'link'
-
     @resources = {}
     @matchedResources = {}
     @matchers = []
@@ -158,6 +156,7 @@ class Selector
       #console.log @node.name, "adding new resource", resource
       res = @node.resources.sub resource
       res.watch(@updateCB)
+      res.send type: "resource update request", scope: 'link'
       res.handleResourceUpdate {resource, merge, data}
 
       @matchedResources[strForm] = res
