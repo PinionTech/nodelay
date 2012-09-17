@@ -80,7 +80,7 @@ class Resource
     @sendUpdate data, merge
 
   snapshot: (opts) ->
-    sendUpdate @data, null, opts
+    @sendUpdate @data, null, opts
 
   sendUpdate: (data, merge, opts) ->
     # TODO: onlyChanges/diff/patch
