@@ -84,6 +84,8 @@ class Nodelay extends EventEmitter
             break unless msg[0] == @scope
             msg.resource.shift()
 
+        #@node.resources.handleResourceUpdate msg if typeof msg is 'resource update'
+
         @node.children.forward msg
 
       @node.parent?.outFilter = (msg) =>
@@ -96,7 +98,9 @@ class Nodelay extends EventEmitter
     else
       @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
 
-    @node.children.on 'resource update', @node.resources.handleResourceUpdate
+    @node.resources.watch()
+
+    #@node.children.on 'resource update', @node.resources.handleResourceUpdate
     
     @node.children.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
     #@node.children.on 'listen', (msg) =>
