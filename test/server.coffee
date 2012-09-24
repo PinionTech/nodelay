@@ -2,8 +2,12 @@ nodelay = require '../nodelay'
 
 nodelay "server", ->
   @bind "0.0.0.0", 1234
-  @pubkey "pubkey.pem" 
+  @pubkey "pubkey.pem"
 
-  @workers "logger"
+  @workers "perftest"
 
   #@node.on "*", (msg) -> console.log msg
+
+  setInterval =>
+    console.log @node.resources.data
+  ,5000

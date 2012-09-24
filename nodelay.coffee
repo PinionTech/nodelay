@@ -76,29 +76,31 @@ class Nodelay extends EventEmitter
     
 
     if @scope
-      @node.parent?.on {resource: @scope}, (msg) =>
-        return if msg.scope is 'link'
-        
+      @node.parent?.inFilter = (msg) =>
         if typeof msg?.resource is 'object' and msg.resource instanceof Array
           for scope in @scope
             break unless msg.resource[0] == scope
             msg.resource.shift()
-
-        #@node.resources.handleResourceUpdate msg if typeof msg is 'resource update'
-
-        @node.children.forward msg
-
-      @node.parent?.outFilter = (msg) =>
-        if msg.resource
-          msg = JSON.parse JSON.stringify msg
-          msg.resource = [msg.resource] if typeof msg.resource is 'string'
-          msg.resource.unshift @scope...
         msg
 
+      @node.parent?.outFilter = (msg) =>
+        #console.log @node.name, "outfiltering with", @scope
+        if msg.resource or (msg.type is "listen" and msg.data.resource)
+          msg = JSON.parse JSON.stringify msg
+        if msg.resource
+          msg.resource = [msg.resource] if typeof msg.resource is 'string'
+          msg.resource.unshift @scope...
+        if msg.type is "listen" and msg.data.resource
+          msg.data.resource = [msg.resource] if typeof msg.resource is 'string'
+          msg.data.resource.unshift @scope...
+        msg
+      
+      @node.parent?.on {resource: @scope}, (msg) => @node.children.forward msg unless msg.scope is 'link'
     else
       @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
 
-    #FIXME: this won't scope parent resources properly... maybe write @node.parent.inFilter
+    # This is probably a bad idea - we should only listen for all resource updates from children
+    # Parent resource updates might be out of scope
     @node.resources.watch()
 
     #@node.children.on 'resource update', @node.resources.handleResourceUpdate

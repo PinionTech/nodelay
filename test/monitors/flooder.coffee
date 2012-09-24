@@ -11,3 +11,4 @@ setInterval ->
   selector.each (path, res) ->
     sub = res.sub "sub"+Math.floor(Math.random()*10)
     sub.update {a:Math.random(), b:Math.random(), c:Math.random()}#, 'clobber'
+#, 5000

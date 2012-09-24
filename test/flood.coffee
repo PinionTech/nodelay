@@ -1,12 +1,13 @@
 nodelay = require '../nodelay'
 
-nodelay "flood", ->
-  @bind '127.0.0.1'
+port = process.argv[2] or 44445
+nodelay "flood-#{port}", ->
+  @bind '127.0.0.1', port
   @privkey 'privkey.pem'
-  @scope 'flood'
+  @scope "flood"#-#{port}"
   @upstream "localhost", 1234
 
-  @workers "logger"
+  #@workers "logger"
   @monitors "flooder"
 
   @resource "resource1"
@@ -14,3 +15,8 @@ nodelay "flood", ->
 
   @resource "resource2"
     flood: true
+
+  setInterval =>
+    console.log @node.resources.data
+  ,5000
+

@@ -79,6 +79,7 @@ class MsgEmitter
 
   emit: (msg) ->
     return unless @listeners
+    console.log 
     for listener in @listeners when msgMatches msg, listener.matcher, @node?.resources
       cb(msg) for cb in listener.cbs
 
@@ -123,7 +124,10 @@ class Parent extends EventEmitter
     @sendRaw msg
 
   sendRaw: (msg) =>
+    #console.log "child", @node.name, "msg before", msg
     msg = @outFilter msg if @outFilter
+    return unless msg
+    #console.log "child", @node.name, "msg after", msg
     if @ws and @ws.readyState == 1
       #console.log "child", @node.name, "sending", msg
       @ws.send JSON.stringify msg
@@ -134,6 +138,7 @@ class Parent extends EventEmitter
 
   recv: (data, client) =>
     msg = @node.processMsg data, client
+    msg = @inFilter msg if @inFilter
     return unless msg
     tag = msg.tag
     delete msg.tag

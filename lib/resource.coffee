@@ -111,7 +111,7 @@ class Resource
 
   watch: (updateCB) ->
     @updateCB = updateCB if updateCB
-    #console.log @node.name, "listening for resource updates on", @path
+    console.log @node.name, "listening for resource updates on", @path
     @node.on {type: "resource update", resource: @path}, @handleResourceUpdate
     @node.on {type: "resource update request", resource: @path}, @handleUpReq
 
@@ -122,7 +122,7 @@ class Resource
     path.slice(i)
 
   handleResourceUpdate: ({resource, merge, data}) =>
-    #console.log @node.name, "got resource update for", resource
+    #console.log @node.name, "got resource update for", resource, data
     path = @scopePath resource
     res = @sub path #@scopePath resource
     res.merge data, merge
