@@ -62,7 +62,7 @@ class MsgEmitter
     for listener, i in @listeners
       i = listener.cbs.indexOf cb
       listener.cbs.splice i, 1 if i >= 0
-      remove.push i
+      remove.push i if listener.cbs.length is 0
 
     @listeners.splice i, 1 for i in remove
 
@@ -202,6 +202,7 @@ class Children extends MsgEmitter
           rmsg.tag = tag
           client.send JSON.stringify rmsg
       @outEmitter.on msg.data, cb
+      # XXX This is what's generating the maxListener warnings
       client.on "close", => @outEmitter.removeListener cb
 
 
