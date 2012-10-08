@@ -111,7 +111,7 @@ class Resource
 
   watch: (updateCB) ->
     @updateCB = updateCB if updateCB
-    console.log @node.name, "listening for resource updates on", @path
+    #console.log @node.name, "listening for resource updates on", @path
     @node.on {type: "resource update", resource: @path}, @handleResourceUpdate
     @node.on {type: "resource update request", resource: @path}, @handleUpReq
 

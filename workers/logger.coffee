@@ -8,15 +8,20 @@ RESET = '\u001b[0m'
 node = Node('logger').connect 'localhost', process.argv[2]
 
 node.on '*', (msg) ->
-  if msg.type is 'metric'
-    x = 0
-    x++ for k of msg.data
-    return if x is 0 
+  return if msg.type is 'resource update'
 
   from = if typeof msg.from is 'object' then msg.from.join('>') else msg.from
   res = if typeof msg.resource is 'object' then msg.resource.join('>') else msg.resource
   header = "[#{from}: #{RED}#{msg.type} #{BLUE}#{res or ''}#{RESET}]"
-  header += "\n" if typeof msg.data is 'object'
-  console.log header, util.inspect msg.data, false, 1, true
-  #console.log msg
+  empty = true
+  if typeof msg.data is 'object'
+    for k of msg.data
+      empty = true
+      break
+    header += "\n" unless empty
+
+  if empty
+    console.log (new Date()).toISOString(), header
+  else
+    console.log (new Date()).toISOString(), header, util.inspect msg.data, false, 1, true
 
