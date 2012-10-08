@@ -13,8 +13,9 @@ node.on '*', (msg) ->
   from = if typeof msg.from is 'object' then msg.from.join('>') else msg.from
   res = if typeof msg.resource is 'object' then msg.resource.join('>') else msg.resource
   header = "[#{from}: #{RED}#{msg.type} #{BLUE}#{res or ''}#{RESET}]"
-  empty = true
+  empty = false
   if typeof msg.data is 'object'
+    empty = true
     for k of msg.data
       empty = false
       break
