@@ -16,7 +16,7 @@ node.on '*', (msg) ->
   empty = true
   if typeof msg.data is 'object'
     for k of msg.data
-      empty = true
+      empty = false
       break
     header += "\n" unless empty
 
