@@ -54,7 +54,7 @@ setInterval ->
 
       process = res.sub('process')
       if running
-        process.update procToMetrics(procs[pid]), 'clobber'
+        process.update procToMetrics(procs[pid])#, 'clobber'
 
 
 

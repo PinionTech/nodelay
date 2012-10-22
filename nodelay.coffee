@@ -96,9 +96,7 @@ class Nodelay extends EventEmitter
           msg.data.resource.unshift @scope...
         msg
       
-      @node.parent?.on {resource: @scope}, (msg) => @node.children.forward msg unless msg.scope is 'link'
-    else
-      @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
+    @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
 
     # This is probably a bad idea - we should only listen for all resource updates from children
     # Parent resource updates might be out of scope
@@ -119,10 +117,6 @@ class Nodelay extends EventEmitter
       else
         msg.from = [@name, msg.from]
 
-#      if @scope and msg.resource
-#        msg.resource = [msg.resource] if typeof msg.resource is 'string'
-#        msg.resource.unshift @scope...
-
       @node.parent?.forward msg
 
     args = if @port then [@port] else []
@@ -130,17 +124,13 @@ class Nodelay extends EventEmitter
     forkCoffee "workers/#{worker}.coffee", args for worker in @workers
     forkCoffee "monitors/#{monitor}.coffee", args for monitor in @monitors
 
+    for name, resource of @resources
+      res = @node.resource name
+      res.update resource
+      #res.watch()
 
-    setTimeout =>
-      #console.log "resources:", @resources
-      for name, resource of @resources
-        res = @node.resource name
-        res.update resource
-        #res.watch()
-
-        #@node.children?.send type: "add resource", resource: name, data: resource
-        #@node.parent?.send type: "add resource", resource: [@name, name], data: resource
-    , 2000
+      #@node.children?.send type: "add resource", resource: name, data: resource
+      #@node.parent?.send type: "add resource", resource: [@name, name], data: resource
 
 
 Nodelay.Node = Node

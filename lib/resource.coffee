@@ -9,7 +9,7 @@ onlyChanges = (older, newer) ->
 
   obj = {}
   changed = false
-  for k of older 
+  for k of older
     if typeof older[k] is 'object' and typeof newer[k] is 'object'
       changes = onlyChanges older[k], newer[k]
       if changes
@@ -41,6 +41,17 @@ clobber = (dst, src) ->
   delete dst[k] for k, v of dst
   dst[k] = src[k] for k, v of src
 
+
+# FIXME: This is a dupe from node.matches
+matches = (obj, match) ->
+  for k, matchv of match
+    objv = obj[k]
+    if typeof objv is 'object' and typeof matchv is 'object'
+      return false unless matches objv, matchv
+    else
+      return false unless objv is matchv or (matchv is '*' and objv isnt undefined)
+  
+  return true
 
 
 class Resource
@@ -76,19 +87,40 @@ class Resource
       else console.warn "Unknown merge type", merge
 
   update: (data, merge) ->
-    @merge data, merge
     @sendUpdate data, merge
+    @merge data, merge
 
-  snapshot: (opts) ->
-    @sendUpdate @data, null, opts
+  snapshotMatch: (matcher, opts={}) ->
+    #console.log "snapshotMatching", matcher
+    for name, resource of @data
+      if matches resource, matcher
+        #console.log "got match for", name
+        sub = @at(name)
+        #console.log "sub data is", sub.data
+        sub.snapshot(opts)
 
-  sendUpdate: (data, merge, opts) ->
+  snapshot: (opts={}) ->
+    opts.scope = 'link'
+    #console.log "sending snapshot with data", @data
+    @sendUpdate @data, "clobber", opts
+
+  sendUpdate: (data, merge="simple", opts) ->
     # TODO: onlyChanges/diff/patch
     msg = {}
     msg[k] = v for k, v of opts
     msg.type = "resource update"
     msg.merge = merge if merge
-    msg.data = data
+
+    switch merge
+      when "simple" then msg.data = onlyChanges @data, data
+      when "clobber" then msg.data = data
+      else
+        console.warn "Unknown merge type", merge
+        msg.data = data
+
+    return if !msg.data
+
+    #msg.data = onlyChanges data
     @send msg
 
   send: (type, data) ->
@@ -113,7 +145,7 @@ class Resource
     @updateCB = updateCB if updateCB
     #console.log @node.name, "listening for resource updates on", @path
     @node.on {type: "resource update", resource: @path}, @handleResourceUpdate
-    @node.on {type: "resource update request", resource: @path}, @handleUpReq
+    #@node.on {type: "resource update request", resource: @path}, @handleUpReq
 
   scopePath: (path) ->
     for component, i in @path
@@ -123,6 +155,7 @@ class Resource
 
   handleResourceUpdate: ({resource, merge, data}) =>
     #console.log @node.name, "got resource update for", resource, data
+    resource ||= []
     path = @scopePath resource
     res = @sub path #@scopePath resource
     res.merge data, merge
@@ -151,6 +184,7 @@ class Selector
 
   handleMatchUpdate: ({resource, merge, data}) =>
     resource = [resource] if typeof resource is 'string'
+    resource ||= []
     strForm = resource.join '\x1f'
     if !@matchedResources[strForm]
       #console.log @node.name, "adding new resource", resource

@@ -18,10 +18,10 @@ msgMatches = (msg, match, resources) ->
     else if k is 'resource'
       #console.log "matching resource", objv, matchv, (typeof matchv), (not (matchv instanceof Array))
       if typeof matchv is 'object' and not (matchv instanceof Array)
-        resource = resources?.at(msg.resource)
+        resource = resources?.at(msg.resource or [])
         return false unless resource
 
-        return false unless matches resources.at(msg.resource).data, matchv
+        return false unless matches resource.data, matchv
       else if objv instanceof Array
         matchv = [matchv] if typeof matchv is 'string'
         for res, i in matchv
@@ -180,6 +180,8 @@ class Children extends MsgEmitter
       if msg.type is "auth" and msg.signed and @node.auth msg
         console.log "accepted auth from", msg.from
         client.authed = true
+        client.emit 'nodelay_auth'
+
       else
         console.log "rejected auth from", msg.from
         client.close()
@@ -188,8 +190,25 @@ class Children extends MsgEmitter
     @emit msg
     
     if msg.type is "listen"
+      #console.log "got #{if client.authed then 'authed ' else ''}listen for", msg
       tag = msg.tag
       name = @node.name
+      if msg.data.resource
+        resource = msg.data.resource
+        from = msg.from
+        sendUpdate = =>
+          if typeof resource is 'object' and resource not instanceof Array 
+            @node.resources.snapshotMatch resource, to: from
+          else
+            @node.resources.at(resource)?.snapshot to: from
+
+        if !@node.auth or client.authed
+          #console.log "resource update (immediate) for matcher", resource
+          sendUpdate()
+        else if @node.auth        
+          #console.log "resource update (delayed) for matcher", resource
+          client.once 'nodelay_auth', sendUpdate
+
       if @node.auth
         cb = (rmsg) ->
           #console.log "client authed?", client.authed
@@ -209,7 +228,9 @@ class Children extends MsgEmitter
   send: (type, data) => @sendRaw @node.buildMsg type, data
  
   sendRaw: (msg) ->
-    @outEmitter.emit msg
+    #console.log "sendRawing", msg
+    process.nextTick =>
+      @outEmitter.emit msg
 
   forward: (msg) =>
     @sendRaw msg

@@ -15,7 +15,7 @@ node.resource process: '*', (res) ->
     myavgs = avgs[pid]
     myavgs.unshift child.cpuUsage if child.cpuUsage?
     myavgs.splice WINDOW
-   
+
     if child.state is 'zombie'
       sub = res.sub('process','children',pid)
       sub.send "kill"

@@ -15,7 +15,8 @@
     "jsondiffpatch": "*",
     "coffee-script": "*",
     "ws": "*",
-    "assert": "*"
+    "assert": "*",
+    "fs-ext": "~0.2.3"
   },
   "devDependencies": {
     "vows": "*"
