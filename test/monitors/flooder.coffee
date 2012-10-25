@@ -1,6 +1,5 @@
 util = require 'util'
 fs   = require 'fs'
-proc = require 'proc'
 Node  = require '../../lib/node'
 
 node = Node('flooder').connect 'localhost', process.argv[2]
