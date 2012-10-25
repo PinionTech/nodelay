@@ -28,7 +28,7 @@ setInterval ->
       updata[name].receive[k] = diff [name,'recv',k].join('.'), v for k, v of dev.receive
       updata[name].transmit[k] = diff [name,'send',k].join('.'), v for k, v of dev.transmit
 
-    res.update updata
+    res.update net: updata
 
 , CHECK_INTERVAL
 

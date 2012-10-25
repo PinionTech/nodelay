@@ -35,7 +35,7 @@ setInterval ->
         for k, v of ddata when k not in ['ios_in_progress', 'dev_major', 'dev_minor', 'name']
           updata[name][k] = diff name+'.'+k, v
 
-      res.update updata
+      res.update disk: updata
 
 , CHECK_INTERVAL
 

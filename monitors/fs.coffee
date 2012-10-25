@@ -46,7 +46,7 @@ setInterval ->
       u.usage = (u.used)/(u.free+u.used) if (u.free + u.used) isnt 0
       u.free_inodes = statvfs.f_favail
 
-    res.update updata
+    res.update fs: updata
 
 , CHECK_INTERVAL
 
