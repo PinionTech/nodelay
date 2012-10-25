@@ -9,7 +9,7 @@
   "bin": "./bin/nodelay",
   "main": "nodelay",
   "dependencies": {
-    "proc": "git://github.com/PinionTech/proc-node.git",
+    "procfs": "*",
     "optimist": "*",
     "underscore": "*",
     "jsondiffpatch": "*",

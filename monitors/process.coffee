@@ -1,6 +1,6 @@
 util = require 'util'
 fs   = require 'fs'
-proc = require 'proc'
+proc = require 'procfs'
 Node  = require '../lib/node'
 
 STATEMAP = {R:"running", S:"sleeping", D:"disk sleep", Z:"zombie", T:"stopped", W:"paging"}
