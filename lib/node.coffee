@@ -205,7 +205,7 @@ class Children extends MsgEmitter
         if !@node.auth or client.authed
           #console.log "resource update (immediate) for matcher", resource
           sendUpdate()
-        else if @node.auth        
+        else if @node.auth
           #console.log "resource update (delayed) for matcher", resource
           client.once 'nodelay_auth', sendUpdate
 

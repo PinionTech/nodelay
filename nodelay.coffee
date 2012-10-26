@@ -96,7 +96,7 @@ class Nodelay extends EventEmitter
           msg.data.resource.unshift @scope...
         msg
       
-    @node.parent?.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
+    @node.parent?.on {type: '*', resource: []}, (msg) => @node.children.forward msg unless msg.scope is 'link'
 
     # This is probably a bad idea - we should only listen for all resource updates from children
     # Parent resource updates might be out of scope
