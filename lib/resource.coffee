@@ -5,9 +5,9 @@ jsondiffpatch = require 'jsondiffpatch'
 
 onlyChanges = (older, newer) ->
   # Too hard basket
-  return newer if older instanceof Array or newer instanceof Array
+  return newer if (older instanceof Array or newer instanceof Array) and older.length != newer.length
 
-  obj = {}
+  obj = if older instanceof Array then [] else {}
   changed = false
   for k of older
     if typeof older[k] is 'object' and typeof newer[k] is 'object'
