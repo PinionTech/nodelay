@@ -49,7 +49,7 @@ stop = (res, cb) ->
   if service.stop
     run service.stop, cb
   else
-    run "kill -- -`cat #{service.pidFile} | xargs ps --no-header -o pgrp -p`", cb
+    run "kill -- -`cat #{service.pidFile} | xargs ps --no-header -o pgrp:1 -p`", cb
   #if service.pidFile && fs.existsSync service.pidFile
   #  fs.unlinkSync service.pidFile
 
