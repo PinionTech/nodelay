@@ -9,20 +9,20 @@ onlyChanges = (older, newer) ->
 
   obj = if older instanceof Array then [] else {}
   changed = false
-  for k of older
+  for k of newer
     if typeof older[k] is 'object' and typeof newer[k] is 'object'
       changes = onlyChanges older[k], newer[k]
       if changes
         obj[k] = changes
         changed = true
+      else if older instanceof Array
+        obj[k] = new newer[k].constructor
     else
       if newer[k] != older[k]
         obj[k] = newer[k]
         changed = true
-  for k of newer
-    unless obj[k]? or older[k]?
-      obj[k] = newer[k]
-      changed = true
+      else if older instanceof Array
+        obj[k] = newer[k]
 
   if changed then obj else null
 
@@ -105,7 +105,6 @@ class Resource
     @sendUpdate @data, "clobber", opts
 
   sendUpdate: (data, merge="simple", opts) ->
-    # TODO: onlyChanges/diff/patch
     msg = {}
     msg[k] = v for k, v of opts
     msg.type = "resource update"
@@ -118,7 +117,10 @@ class Resource
         console.warn "Unknown merge type", merge
         msg.data = data
 
+    #console.log @node.name, "Update message", msg
+
     return if !msg.data
+
 
     #msg.data = onlyChanges data
     @send msg
