@@ -7,6 +7,8 @@ onlyChanges = (older, newer) ->
   # Too hard basket
   return newer if (older instanceof Array or newer instanceof Array) and older.length != newer.length
 
+  return (if newer == older then null else newer) if typeof older isnt 'object' or typeof newer isnt 'object' or !older or !newer
+
   obj = if older instanceof Array then [] else {}
   changed = false
   for k of newer
@@ -16,7 +18,10 @@ onlyChanges = (older, newer) ->
         obj[k] = changes
         changed = true
       else if older instanceof Array
-        obj[k] = new newer[k].constructor
+        if newer[k] instanceof Array
+          obj[k] = newer[k]
+        else
+          obj[k] = {}
     else
       if newer[k] != older[k]
         obj[k] = newer[k]
@@ -33,7 +38,12 @@ deepMerge = (dst, src) ->
   for k, srcv of src
     dstv = dst[k]
     if typeof dstv is 'object' and typeof srcv is 'object'
-      deepMerge dstv, srcv
+      if (dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length
+        deepMerge dstv, srcv
+      else if (not dstv instanceof Array) and (not srcv instanceof Array)
+        deepMerge dstv, srcv
+      else
+        dst[k] = srcv
     else
       dst[k] = srcv
 
@@ -212,6 +222,6 @@ class Selector
     for path, res of @matchedResources
       cb res.path, res
 
-Resource.Selector = Selector
+Resource[k] = v for k, v of {Selector, onlyChanges, deepMerge, clobber, matches}
 
 module.exports = Resource
