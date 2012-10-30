@@ -79,7 +79,6 @@ class MsgEmitter
 
   emit: (msg) ->
     return unless @listeners
-    console.log 
     for listener in @listeners when msgMatches msg, listener.matcher, @node?.resources
       cb(msg) for cb in listener.cbs
 

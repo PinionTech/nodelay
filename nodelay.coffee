@@ -24,7 +24,6 @@ handleRestart = (code, signal, script, args, options) ->
   onedirname = path.join path.basename(path.dirname(script)), path.basename(script)
   console.log onedirname, "exited with", if code then "code #{code}" else "signal #{signal}"
   setTimeout ->
-    
     console.log "restarting #{onedirname}"
     forkCoffee script, args, options
   ,5000
@@ -35,7 +34,7 @@ class Nodelay extends EventEmitter
 
     @name = name
 
-    @resources = {}
+    @resources = []
     @controllers = []
     @workers = []
     @monitors = []
@@ -64,8 +63,7 @@ class Nodelay extends EventEmitter
         @node.pubkey = @pubkey
         @node.auth = (msg) -> true
       resource: (name, resource) =>
-        resource.name = name
-        @resources[name] = resource
+        @resources.push {name, resource}
 
     init?.call dsl
 
@@ -124,7 +122,7 @@ class Nodelay extends EventEmitter
     forkCoffee "workers/#{worker}.coffee", args for worker in @workers
     forkCoffee "monitors/#{monitor}.coffee", args for monitor in @monitors
 
-    for name, resource of @resources
+    for {name, resource} in @resources
       res = @node.resource name
       res.update resource
       #res.watch()
@@ -134,4 +132,4 @@ class Nodelay extends EventEmitter
 
 
 Nodelay.Node = Node
-module.exports = Nodelay 
+module.exports = Nodelay

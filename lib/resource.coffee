@@ -102,7 +102,7 @@ class Resource
   snapshot: (opts={}) ->
     opts.scope = 'link'
     #console.log "sending snapshot with data", @data
-    @sendUpdate @data, "clobber", opts
+    @sendUpdate @data, "snapshot", opts
 
   sendUpdate: (data, merge="simple", opts) ->
     msg = {}
@@ -113,6 +113,9 @@ class Resource
     switch merge
       when "simple" then msg.data = onlyChanges @data, data
       when "clobber" then msg.data = data
+      when "snapshot"
+        msg.data = data
+        msg.merge = "simple"
       else
         console.warn "Unknown merge type", merge
         msg.data = data
