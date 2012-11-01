@@ -172,10 +172,16 @@ class Resource
     #console.log @node.name, "got resource update for", resource, data
     resource ||= []
     path = @scopePath resource
-    res = @sub path #@scopePath resource
+    res = @sub path
     res.merge data, merge
 
-    @updateCB? this, @data #res, msg.data
+    scopedData = if merge is 'clobber' then res.data else data
+    for p in path.slice().reverse()
+      oldData = scopedData
+      scopedData = {}
+      scopedData[p] = oldData
+
+    @updateCB? this, scopedData
     res
 
   handleUpReq: ({resource, merge, data, scope, from}) =>
