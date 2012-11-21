@@ -8,7 +8,7 @@ RESET = '\u001b[0m'
 node = Node('logger').connect 'localhost', process.argv[2]
 
 node.on '*', (msg) ->
-  return if msg.type is 'resource update'
+  return if msg.type is 'resource update' or msg.scope is 'link'
 
   from = if typeof msg.from is 'object' then msg.from.join('>') else msg.from
   res = if typeof msg.resource is 'object' then msg.resource.join('>') else msg.resource

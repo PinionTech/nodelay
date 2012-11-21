@@ -102,14 +102,29 @@ class Parent extends EventEmitter
       # This should be in Resource via a listener or such
       for name, data of @node.resources.data
         @send type: "resource update", resource: name, data: data
+      
+      ping = true
+      @pingInterval = setInterval =>
+        if ping is false
+          console.log @node.name, "ping timed out to parent"
+          @ws.close()
 
+        ping = false
+        @send type: 'ping', scope: 'link'
+      ,5000
+      @on type: 'pong', scope: 'link', -> ping = true
+      @on type: 'ping', scope: 'link', -> @send type: 'pong', scope: 'link'
       @cb() if @cb
+
     @ws.on 'close', =>
+      clearInterval @pingInterval
       console.log @node.name, "connection closed"
       @reconnect()
+
     @ws.on 'error', (err) =>
       console.log @node.name, "error", err.message
       @reconnect()
+
     this
   
   reconnect: =>
@@ -161,6 +176,7 @@ class Children extends MsgEmitter
 
   listen: (@host, @port, cb) ->
     console.log @node.name, "listening on", host, "port", port
+    @on type: 'ping', scope: 'link', (msg) => @send type: 'pong', scope: 'link', to: msg.from
     @wss = new ws.Server {host, port}
     @wss.on 'connection', (client) =>
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
@@ -213,12 +229,12 @@ class Children extends MsgEmitter
           #console.log "client authed?", client.authed
           rmsg = JSON.parse JSON.stringify rmsg
           rmsg.tag = tag
-          client.send JSON.stringify rmsg if client.authed
+          client.send JSON.stringify rmsg if client.authed and client.readyState == 1
       else
         cb = (rmsg) ->
           rmsg = JSON.parse JSON.stringify rmsg
           rmsg.tag = tag
-          client.send JSON.stringify rmsg
+          client.send JSON.stringify rmsg if client.readyState == 1
       @outEmitter.on msg.data, cb
       # XXX This is what's generating the maxListener warnings
       client.on "close", => @outEmitter.removeListener cb
