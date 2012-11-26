@@ -67,8 +67,8 @@ class MsgEmitter
     return unless @listeners
     remove = []
     for listener, i in @listeners
-      i = listener.cbs.indexOf cb
-      listener.cbs.splice i, 1 if i >= 0
+      j = listener.cbs.indexOf cb
+      listener.cbs.splice j, 1 if j >= 0
       remove.push i if listener.cbs.length is 0
 
     @listeners.splice i, 1 for i in remove
