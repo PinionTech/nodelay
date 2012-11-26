@@ -23,9 +23,7 @@ msgMatches = (msg, match, resources) ->
 
         return false unless matches resource.data, matchv
       else if objv instanceof Array
-        matchv = [matchv] if typeof matchv is 'string'
-        for res, i in matchv
-          return false if objv[i] isnt res
+        return false unless matchArrayHead matchv, objv
       else
         return false
     else
@@ -42,6 +40,15 @@ matches = (obj, match) ->
       return false unless objv is matchv or (matchv is '*' and objv isnt undefined)
   
   return true
+
+matchArrayHead = (matcher, matchee) ->
+  return false if !matchee
+  matcher = [matcher] if typeof matcher is 'string'
+  matchee = [matchee] if typeof matchee is 'string'
+  for res, i in matcher
+    return false if matchee[i] isnt res
+  return true
+
 
 
 
@@ -95,6 +102,7 @@ class Parent extends EventEmitter
     @ws.on 'message', (data) => @recv data, @ws
     @ws.on 'open', =>
       @node.send type: 'auth', signed: true, scope: 'link' if @node.privkey
+      @node.send type: 'name', scope: 'link', data: @node.name
 
       for tag, matcher of @matchers
         @send type: "listen", scope: "link", data: matcher, tag: tag
@@ -202,6 +210,8 @@ class Children extends MsgEmitter
         client.close()
         return
 
+    client.name = msg.data if msg.type is "name" and msg.scope is 'link'
+
     @emit msg
     
     if msg.type is "listen"
@@ -224,17 +234,19 @@ class Children extends MsgEmitter
           #console.log "resource update (delayed) for matcher", resource
           client.once 'nodelay_auth', sendUpdate
 
-      if @node.auth
-        cb = (rmsg) ->
-          #console.log "client authed?", client.authed
-          rmsg = JSON.parse JSON.stringify rmsg
-          rmsg.tag = tag
-          client.send JSON.stringify rmsg if client.authed and client.readyState == 1
-      else
-        cb = (rmsg) ->
-          rmsg = JSON.parse JSON.stringify rmsg
-          rmsg.tag = tag
-          client.send JSON.stringify rmsg if client.readyState == 1
+
+
+
+      cb = (rmsg) =>
+        #console.log "client authed?", client.authed
+        return if client.readyState isnt 1
+        return if @node.auth and !client.authed
+        return if rmsg.to and !matchArrayHead rmsg.to, client.name
+
+        rmsg = JSON.parse JSON.stringify rmsg
+        rmsg.tag = tag
+        client.send JSON.stringify rmsg
+      
       @outEmitter.on msg.data, cb
       # XXX This is what's generating the maxListener warnings
       client.on "close", => @outEmitter.removeListener cb
