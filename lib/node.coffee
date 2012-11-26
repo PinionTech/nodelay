@@ -185,13 +185,18 @@ class Children extends MsgEmitter
   listen: (@host, @port, cb) ->
     console.log @node.name, "listening on", host, "port", port
     @on type: 'ping', scope: 'link', (msg) => @send type: 'pong', scope: 'link', to: msg.from
+
     @wss = new ws.Server {host, port}
     @wss.on 'connection', (client) =>
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
-      client.setMaxListeners 100 #TODO: do I really need this? Am I doing something dumb?
       client.on 'message', (msg) => @recv msg, client
+
+      client.nodelay_listeners = []
+      client.on 'close', =>
+        for listener in client.nodelay_listeners
+          @outEmitter.removeListener listener
     this
 
   recv: (data, client) =>
@@ -248,9 +253,7 @@ class Children extends MsgEmitter
         client.send JSON.stringify rmsg
       
       @outEmitter.on msg.data, cb
-      # XXX This is what's generating the maxListener warnings
-      client.on "close", => @outEmitter.removeListener cb
-
+      client.nodelay_listeners.push cb
 
   send: (type, data) => @sendRaw @node.buildMsg type, data
  
