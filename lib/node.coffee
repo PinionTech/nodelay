@@ -121,7 +121,6 @@ class Parent extends EventEmitter
         @send type: 'ping', scope: 'link'
       ,5000
       @on type: 'pong', scope: 'link', -> ping = true
-      @on type: 'ping', scope: 'link', -> @send type: 'pong', scope: 'link'
       @cb() if @cb
 
     @ws.on 'close', =>
