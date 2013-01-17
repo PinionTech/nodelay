@@ -51,43 +51,112 @@ matchArrayHead = (matcher, matchee) ->
 
 
 
+class MatchIndex
+  constructor: ->
+    @matchsets = []
+  
+  add: (matchset) ->
+    @matchsets.push matchset
+
+  find: (matcher) ->
+    for matchset in @matchsets when matchset.hasMatcher matcher
+      return matchset
+    return null
+
+  remove: (matchset) ->
+    j = @matchsets.indexOf matchset
+    @matchsets.splice j, 1 if j >= 0
+
+  each: (cb) ->
+    cb matchset for matchset in @matchsets
+  
+  fire: (msg, resources) ->
+    matchset.fire msg, resources for matchset in @matchsets
+    return
+
+
+
+
+
+class MatchSet
+  constructor: (@matcher) ->
+    @cbs = []
+  
+  add: (cb) ->
+    @cbs.push cb
+
+  remove: (cb) ->
+    j = @cbs.indexOf cb
+    @cbs.splice j, 1 if j >= 0
+
+  length: -> @cbs.length
+  empty: -> @cbs.length == 0
+
+  fire: (msg, resources) ->
+    if msgMatches msg, @matcher, resources
+      cb(msg) for cb in @cbs
+
+  hasMatcher: (matcher) -> _.isEqual @matcher, matcher
+
+
 
 class MsgEmitter
+  indexAttribs: ['type']
+
   on: (matcher, cb) ->
     matcher = {type: matcher} if typeof matcher is 'string'
 
-    @listeners ?= []
-    
-    for listener in @listeners
-      return listener.cbs.push cb if _.isEqual listener.matcher, matcher
+    @cache ||= {}
 
-    @listeners.push {matcher, cbs:[cb]}
+    @all ?= new MatchIndex
+    if !@indices
+      @indices = {}
+    
+    matchset = @all.find matcher
+    if !matchset
+      matchset = new MatchSet(matcher)
+      @all.add matchset
+      for attrib in @indexAttribs
+        if (val = matcher[attrib])? and val isnt '*'
+          @indices[attrib] ||= {}
+          @indices[attrib][val] ||= new MatchIndex()
+          @indices[attrib][val].add matchset
+    
+    matchset.add cb
+
+    return
 
   removeListener: (cb) ->
-    return unless @listeners
+    return unless @all
+    
     remove = []
-    for listener, i in @listeners
-      j = listener.cbs.indexOf cb
-      listener.cbs.splice j, 1 if j >= 0
-      remove.push i if listener.cbs.length is 0
+    @all.each (matchset) ->
+      matchset.remove(cb)
+      if matchset.empty()
+        remove.push matchset
 
-    @listeners.splice i, 1 for i in remove
+    for matchset in remove
+      @all.remove matchset
+      for k, index2 of @indices
+        for k, index of index2
+          index.remove matchset
+    return
 
-  removeAllListeners: -> @listeners = []
+  removeAllListeners: ->
+    @all = null
+    @cache = null
   
-  eachMatcher: (cb) ->
-    cb listener.matcher for listener in @listeners
-
-  eachListener: (cb) ->
-    return unless @listeners
-    for listener in @listeners
-      for listenerCb in listener.cbs
-        cb listener.matcher, listenerCb
-
   emit: (msg) ->
-    return unless @listeners
-    for listener in @listeners when msgMatches msg, listener.matcher, @node?.resources
-      cb(msg) for cb in listener.cbs
+    return unless @all
+
+    for attrib in @indexAttribs
+      if (val = msg[attrib])? and val isnt '*'
+        #console.log "emitting on index", attrib, val, @indices[attrib][val]?.matchsets.length
+        @indices[attrib][val]?.fire msg, @node?.resources
+        return
+    
+    @all.fire msg, @node?.resources
+    return
 
 class Parent extends EventEmitter
   constructor: (@node, host, port, cb) ->
@@ -350,5 +419,6 @@ class Node
       else
         new Resource.Selector this, selector, cb
 
+Node[k] = v for k, v of {MsgEmitter}
 
 module.exports = Node
