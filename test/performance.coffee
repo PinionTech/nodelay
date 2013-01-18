@@ -29,7 +29,6 @@ t = (fn) ->
 
 time = ({listeners, msgtypes, resources, messages}, cb) ->
   em = new node.MsgEmitter
-  d = new Date()
   count = 0
 
   done = ->
@@ -41,6 +40,7 @@ time = ({listeners, msgtypes, resources, messages}, cb) ->
         count++
         done() if count == listeners * messages
 
+  d = new Date()
   for [1..messages/resources/msgtypes]
     for res in [1..resources]
       msg = {resource: ["res#{res}","sub#{res+1}","subsub#{res+2}"]}
@@ -78,9 +78,10 @@ runTests = (cb, i = 0) ->
     else
       cb?()
 
-runTests ->
-  console.log "done"
-
+console.log "Press Ctrl-D to start"
+fs.readFile '/dev/stdin', ->
+  runTests ->
+    console.log "done"
 
 # describe "MsgEmitter"
 #   "on two values":
