@@ -1,5 +1,6 @@
 EventEmitter = require('events').EventEmitter
 
+MsgEmitter = require './msgemitter'
 jsondiffpatch = require 'jsondiffpatch'
 
 
@@ -52,17 +53,7 @@ clobber = (dst, src) ->
   dst[k] = src[k] for k, v of src
 
 
-# FIXME: This is a dupe from node.matches
-matches = (obj, match) ->
-  for k, matchv of match
-    objv = obj[k]
-    if typeof objv is 'object' and typeof matchv is 'object'
-      return false unless matches objv, matchv
-    else
-      return false unless objv is matchv or (matchv is '*' and objv isnt undefined)
-  
-  return true
-
+matches = MsgEmitter.matches
 
 class Resource
   constructor: (@node, @path, @data) ->
