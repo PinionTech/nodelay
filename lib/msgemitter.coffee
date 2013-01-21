@@ -91,7 +91,8 @@ class MatchSet
 
 
 class MsgEmitter
-  indexAttribs: ['scope', 'type']
+  # Order these by entropy - ie we assume #resources > #types > #scopes
+  indexAttribs: ['type', 'scope']
 
   on: (matcher, cb) ->
     matcher = {type: matcher} if typeof matcher is 'string'
@@ -99,28 +100,40 @@ class MsgEmitter
     @cache ||= {}
 
     @all ?= new MatchIndex
+    @unindexed ?= new MatchIndex
     if !@indices
       @indices = {}
+      @indices.resource = {}
+      for attrib in @indexAttribs
+        @indices[attrib] = {}
     
     matchset = @all.find matcher
     if !matchset
       matchset = new MatchSet(matcher)
-      @all.add matchset
-      for attrib in @indexAttribs
-        if (val = matcher[attrib])? and val isnt '*'
-          #console.log "adding index for", attrib, "=", val
-          @addIndex attrib, val, matchset
+      @addIndices matchset
       
-      if typeof matcher.resource is 'object' and matcher.resource.constructor is Array and matcher.resource[0]
-        @addIndex 'resource', matcher.resource[0], matchset
-
-    
     matchset.add cb
 
     return
 
+  addIndices: (matchset) ->
+    matcher = matchset.matcher
+    @all.add matchset
+    if typeof matcher.resource is 'object' and matcher.resource.constructor is Array and matcher.resource[0]
+      @addIndex 'resource', matcher.resource[0], matchset
+    else
+      indexed = false
+      for attrib in @indexAttribs
+        if (val = matcher[attrib])? and val isnt '*'
+          #console.log "adding #{attrib}=#{val} index for", matcher
+          @addIndex attrib, val, matchset
+          indexed = true
+          break;
+      if !indexed
+        @unindexed.add matchset
+
   addIndex: (attrib, val, matchset) ->
-    @indices[attrib] ||= {}
+    #console.log "adding index for attribute", attrib, "and value", val
     @indices[attrib][val] ||= new MatchIndex()
     @indices[attrib][val].add matchset
 
@@ -136,6 +149,7 @@ class MsgEmitter
 
     for matchset in remove
       @all.remove matchset
+      @unindexed.remove matchset
       for k, index2 of @indices
         for k, index of index2
           index.remove matchset
@@ -143,23 +157,20 @@ class MsgEmitter
 
   removeAllListeners: ->
     @all = null
-    @cache = null
+    @indices = null
   
   emit: (msg) ->
     return unless @all
 
+    if val = msg.resource?[0]
+      @indices.resource[val]?.fire msg, @node?.resources      
+
     for attrib in @indexAttribs
-      if (val = msg[attrib])? and val isnt '*'
+      if (val = msg[attrib])?
         #console.log "emitting on index", attrib, val, @indices[attrib][val]?.matchsets.length
         @indices[attrib][val]?.fire msg, @node?.resources
-        return
 
-
-    if val = msg.resource?[0]
-      @indices.resource[val].fire msg, @node?.resources
-      return
-    
-    @all.fire msg, @node?.resources
+    @unindexed.fire msg, @node?.resources
     return
 
 MsgEmitter[k] = v for k, v of {matches,msgMatches,matchArrayHead}

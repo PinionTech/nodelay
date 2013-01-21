@@ -1,9 +1,12 @@
-Node = require './lib/node'
-
 EventEmitter = require('events').EventEmitter
 {fork} = require 'child_process'
 path = require 'path'
 fs = require 'fs'
+
+Node = require './lib/node'
+nodelay_monitor = require './lib/nodelay_monitor'
+
+children = []
 
 forkCoffee = (script, args, options={}) ->
   # XXX This doesn't seem to be needed anymore - somehow it's auto-finding the coffee binary
@@ -15,9 +18,16 @@ forkCoffee = (script, args, options={}) ->
 
   child = fork script, args, options
   child.on 'exit', (code, signal) -> handleRestart code, signal, script, args, options
-  
+  children.push child
   #process.execPath = oldExecPath
   child
+
+process.on 'uncaughtException', (e) ->
+  child.kill() for child in children
+  console.warn "Master process dying due to exception"
+  console.warn e.stack
+  process.nextTick ->
+    process.exit()
 
 
 handleRestart = (code, signal, script, args, options) ->
@@ -67,6 +77,8 @@ class Nodelay extends EventEmitter
 
     init?.call dsl
 
+    @port ||= 44445
+
     if @upstream
       @node.connect @upstream.host, @upstream.port, =>
         @emit "connected"
@@ -94,6 +106,7 @@ class Nodelay extends EventEmitter
           msg.data.resource.unshift @scope...
         msg
       
+    # Forward mesages from parent to children
     @node.parent?.on {type: '*', resource: []}, (msg) => @node.children.forward msg unless msg.scope is 'link'
 
     # This is probably a bad idea - we should only listen for all resource updates from children
@@ -102,9 +115,12 @@ class Nodelay extends EventEmitter
 
     #@node.children.on 'resource update', @node.resources.handleResourceUpdate
     
+
+    # Forward messages from one child to all children
     @node.children.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'
     #@node.children.on 'listen', (msg) =>
 
+    # Forward messages from children to parent
     @node.children.on '*', (msg) =>
       return if msg.scope is 'link'
       msg = JSON.parse JSON.stringify msg
@@ -117,10 +133,12 @@ class Nodelay extends EventEmitter
 
       @node.parent?.forward msg
 
-    args = if @port then [@port] else []
+    args = [@port]
     forkCoffee "controllers/#{controller}.coffee", args for controller in @controllers
     forkCoffee "workers/#{worker}.coffee", args for worker in @workers
     forkCoffee "monitors/#{monitor}.coffee", args for monitor in @monitors
+
+    nodelay_monitor this
 
     for {name, resource} in @resources
       res = @node.resource name

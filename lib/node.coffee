@@ -82,7 +82,11 @@ class Parent extends EventEmitter
   recv: (data, client) =>
     msg = @node.processMsg data, client
     msg = @inFilter msg if @inFilter
-    return unless msg
+    unless msg
+      @node.stats.discarded++
+      return
+    
+    @node.stats.in++
     tag = msg.tag
     delete msg.tag
     @emit tag, msg
@@ -123,7 +127,10 @@ class Children extends MsgEmitter
   recv: (data, client) =>
     #console.log "parent", @node.name, "received", data
     msg = @node.processMsg data, client
-    return unless msg
+    unless msg
+      @node.stats.discarded++
+      return
+    @node.stats.in++
 
     if @node.auth and !client.authed and (msg.type isnt 'listen' or msg.scope isnt 'link')
       if msg.type is "auth" and msg.signed and @node.auth msg
@@ -155,7 +162,7 @@ class Children extends MsgEmitter
 
         if !@node.auth or client.authed
           #console.log "resource update (immediate) for matcher", resource
-          sendUpdate()
+          process.nextTick sendUpdate
         else if @node.auth
           #console.log "resource update (delayed) for matcher", resource
           client.once 'nodelay_auth', sendUpdate
@@ -167,7 +174,9 @@ class Children extends MsgEmitter
         #console.log "client authed?", client.authed
         return if client.readyState isnt 1
         return if @node.auth and !client.authed
+        #console.log "TO:", rmsg.to, client.name, MsgEmitter.matchArrayHead(rmsg.to, client.name) if rmsg.to
         return if rmsg.to and !MsgEmitter.matchArrayHead rmsg.to, client.name
+
 
         rmsg = JSON.parse JSON.stringify rmsg
         rmsg.tag = tag
@@ -179,7 +188,8 @@ class Children extends MsgEmitter
   send: (type, data) => @sendRaw @node.buildMsg type, data
  
   sendRaw: (msg) ->
-    #console.log "sendRawing", msg
+    @node.stats.out++
+    #console.log "sendRawing", msg if msg.type is 'resource update'
     process.nextTick =>
       @outEmitter.emit msg
 
@@ -193,6 +203,8 @@ class Node
   
   constructor: (name) ->
     return new Node(name) if this is global
+
+    @stats = {in: 0, out: 0, discarded: 0}
 
     @name = name or Math.random().toFixed(10).slice(2)
 

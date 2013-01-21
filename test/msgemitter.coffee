@@ -24,21 +24,43 @@ describe "A msg emitter"
     
     "which returns an object": (s) -> assert.isObject s
 
-  "when listening for anything": 
+  "when listening for anything":
     topic: ->
       m = new MsgEmitter()
-      m.on {}, (msg) => m.calledCount++
-      m.calledCount = 0
+      m.on {}, (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
+      m.calledCount = {}
       m
 
     "and a message is emitted":
       topic: (m) ->
-        m.emit {asdf: 1234}
+        m.emit {asdf: 1234, key: 1}
         m
       "the callback fires once": (m) ->
-        assert.equal m.calledCount, 1
+        assert.equal m.calledCount[1], 1
 
-  "when listening for a string": 
+    "and a message with a cached type is emitted":
+      topic: (m) ->
+        m.emit {asdf: 1234, type: "internet", key: 2}
+        m
+      "the callback fires once": (m) ->
+        assert.equal m.calledCount[2], 1
+
+    "and a message with a cached resource is emitted":
+      topic: (m) ->
+        m.emit {asdf: 1234, resource: "internet", key: 3}
+        m
+      "the callback fires once": (m) ->
+        assert.equal m.calledCount[3], 1
+
+    "and a message with a cached scope is emitted":
+      topic: (m) ->
+        m.emit {asdf: 1234, scope: "internet", key: 4}
+        m
+      "the callback fires once": (m) ->
+        assert.equal m.calledCount[4], 1
+
+
+  "when listening for a string":
     topic: ->
       m = new MsgEmitter()
       m.on "hello", (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
@@ -60,7 +82,7 @@ describe "A msg emitter"
         assert.equal m.calledCount[2], undefined
 
 
-  "when listening for two different strings": 
+  "when listening for two different strings":
     topic: ->
       m = new MsgEmitter()
       m.on "hello", (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
@@ -89,7 +111,7 @@ describe "A msg emitter"
       "the callback does not fire": (m) ->
         assert.equal m.calledCount[3], undefined
 
-  "when listening for an object": 
+  "when listening for an object":
     topic: ->
       m = new MsgEmitter()
       m.on {a:1, b:2}, (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
@@ -119,7 +141,7 @@ describe "A msg emitter"
         assert.equal m.calledCount[3], undefined
 
 
-  "when listening for resources": 
+  "when listening for resources":
     topic: ->
       m = new MsgEmitter()
       m.on {resource: ["hello", "world"]}, (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
@@ -184,3 +206,40 @@ describe "A msg emitter"
         m
       "the callback does not fire": (m) ->
         assert.equal m.calledCount[3], undefined
+
+
+  "when listening for several messages at once": 
+    topic: ->
+      m = new MsgEmitter()
+      callCount = (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
+      m.on {scope: 'link'}, callCount
+      m.on {scope: 'internet'}, callCount
+      m.on {type: 'link', scope: 'link'}, callCount
+      m.on {type: 'link'}, callCount
+      m.on {resource: ["a", "b"], type: 'internet'}, callCount
+      m.on {resource: ["a", "b"], scope: 'link'}, callCount
+      m.on {type: 'internet'}, callCount
+      m.on {}, callCount
+      m.calledCount = {}
+      m
+
+    "and a message matching exactly one matcher is emitted":
+      topic: (m) ->
+        m.emit {asdf: 1234, key: 1}
+        m
+      "the callback fires once": (m) ->
+        assert.equal m.calledCount[1], 1
+
+    "and a message matching a type index and a global matcher is emitted":
+      topic: (m) ->
+        m.emit {type: 'link', key: 2}
+        m
+      "the callback fires on both": (m) ->
+        assert.equal m.calledCount[2], 2
+
+    "and a message overlapping 4 matchers and a global matcher":
+      topic: (m) ->
+        m.emit {type: 'link', scope: 'link', resource: ["a","b"], key: 3}
+        m
+      "the callback fires five times": (m) ->
+        assert.equal m.calledCount[3], 5
