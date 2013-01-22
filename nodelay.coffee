@@ -97,7 +97,9 @@ class Nodelay extends EventEmitter
       @node.parent?.outFilter = (msg) =>
         #console.log @node.name, "outfiltering with", @scope
         if msg.resource or (msg.type is "listen" and msg.data.resource)
-          msg = JSON.parse JSON.stringify msg
+          newmsg = {}
+          newmsg[k] = v for k, v of msg
+          msg = newmsg
         if msg.resource
           msg.resource = [msg.resource] if typeof msg.resource is 'string'
           msg.resource.unshift @scope...
@@ -122,16 +124,18 @@ class Nodelay extends EventEmitter
 
     # Forward messages from children to parent
     @node.children.on '*', (msg) =>
-      return if msg.scope is 'link'
-      msg = JSON.parse JSON.stringify msg
-      if typeof msg.from is "object"
-        msg.from.unshift @name
-      else if typeof msg.from is "undefined"
-        msg.from = @name
-      else
-        msg.from = [@name, msg.from]
+      return if msg.scope is 'link' or !@node.parent
+      newmsg = {}
+      newmsg[k] = v for k, v of msg
 
-      @node.parent?.forward msg
+      if typeof newmsg.from is "object"
+        newmsg.from.unshift @name
+      else if typeof msg.from is "undefined"
+        newmsg.from = @name
+      else
+        nwemsg.from = [@name, newmsg.from]
+
+      @node.parent.forward newmsg
 
     args = [@port]
     forkCoffee "controllers/#{controller}.coffee", args for controller in @controllers

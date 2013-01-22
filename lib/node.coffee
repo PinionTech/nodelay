@@ -177,10 +177,9 @@ class Children extends MsgEmitter
         #console.log "TO:", rmsg.to, client.name, MsgEmitter.matchArrayHead(rmsg.to, client.name) if rmsg.to
         return if rmsg.to and !MsgEmitter.matchArrayHead rmsg.to, client.name
 
-
-        rmsg = JSON.parse JSON.stringify rmsg
         rmsg.tag = tag
         client.send JSON.stringify rmsg
+        delete rmsg.tag
       
       @outEmitter.on msg.data, cb
       client.nodelay_listeners.push cb
