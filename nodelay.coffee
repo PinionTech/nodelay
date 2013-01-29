@@ -133,7 +133,7 @@ class Nodelay extends EventEmitter
       else if typeof msg.from is "undefined"
         newmsg.from = @name
       else
-        nwemsg.from = [@name, newmsg.from]
+        newmsg.from = [@name, newmsg.from]
 
       @node.parent.forward newmsg
 
