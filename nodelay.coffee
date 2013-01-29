@@ -96,15 +96,25 @@ class Nodelay extends EventEmitter
 
       @node.parent?.outFilter = (msg) =>
         #console.log @node.name, "outfiltering with", @scope
-        if msg.resource or (msg.type is "listen" and msg.data.resource)
+        if msg.resource or (msg.type is "listen" and msg.data.resource instanceof Array)
           newmsg = {}
           newmsg[k] = v for k, v of msg
           msg = newmsg
         if msg.resource
-          msg.resource = [msg.resource] if typeof msg.resource is 'string'
+          if typeof msg.resource is 'string'
+            msg.resource = [msg.resource] 
+          else
+            msg.resource = msg.resource.slice()
           msg.resource.unshift @scope...
-        if msg.type is "listen" and msg.data.resource
-          msg.data.resource = [msg.resource] if typeof msg.resource is 'string'
+        if msg.type is "listen" and msg.data.resource instanceof Array 
+          newdata = {}
+          newdata[k] = v for k, v of msg.data
+          msg.data = newdata
+
+          if typeof msg.data.resource is 'string'
+            msg.data.resource = [msg.data.resource]
+          else
+            msg.data.resource = msg.data.resource.slice()
           msg.data.resource.unshift @scope...
         msg
       
