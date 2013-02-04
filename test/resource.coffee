@@ -18,7 +18,7 @@ t = (fn) ->
     fn.apply this, args
     return
 
-onlyChanges = resource.onlyChanges
+{onlyChanges, snapshotMatch} = resource
 
 describe "A resource"
   "is created with resource(node, path, args)":
@@ -110,3 +110,48 @@ describe "onlyChanges"
       "returns null": (v) -> assert.strictEqual v, null
 
 
+fakeResource = (data) -> ->
+      res = new resource(null, [], data)
+      res.updateCount = {}
+      res.node = 
+        name: "test node"
+        buildMsg: (type, data) -> if typeof type is "string" then {type, data} else type
+        send: (msg) -> res.updateCount[msg.key] ?= 0; res.updateCount[msg.key]++
+      res
+
+describe "snapshotMatch"
+  "when called on a one-level deep resource":
+    topic: fakeResource {a: 1, b: 2, c: 3}
+    
+    "and a matcher with one matching field":
+      topic: (r) -> r.snapshotMatch {a: 1}, {key: 1}; r
+
+      "snapshots once": (r) -> assert.equal r.updateCount[1], 1
+
+    "and a matcher with no matching fields":
+      topic: (r) -> r.snapshotMatch {d: 1}, {key: 2}; r
+
+      "does not snapshot": (r) -> assert.equal r.updateCount[2], undefined
+
+  "when called on a two-level deep resource":
+    topic: fakeResource {a: 1, b: 2, c: {a: 1, b: 3}}
+    
+    "and a matcher with one matching field":
+      topic: (r) -> r.snapshotMatch {b: 2}, {key: 1}; r
+
+      "snapshots once": (r) -> assert.equal r.updateCount[1], 1
+
+    "and a matcher with one matching field in a subresource":
+      topic: (r) -> r.snapshotMatch {b: 3}, {key: 2}; r
+
+      "snapshots once": (r) -> assert.equal r.updateCount[2], 1
+
+    "and a matcher with one matching field in a resource and a subresource":
+      topic: (r) -> r.snapshotMatch {a: 1}, {key: 3}; r
+
+      "snapshots twice": (r) -> assert.equal r.updateCount[3], 2
+
+    "and a matcher with no matching fields":
+      topic: (r) -> r.snapshotMatch {d: 1}, {key: 4}; r
+
+      "does not snapshot": (r) -> assert.equal r.updateCount[4], undefined

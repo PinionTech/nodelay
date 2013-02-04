@@ -6,6 +6,8 @@ vows    = require 'vows'
 assert  = require 'assert'
 
 MsgEmitter = require '../lib/msgemitter'
+Resource = require '../lib/resource'
+
 
 describe = (name, bat) -> vows.describe(name).addBatch(bat).export(module)
 exists = fs.existsSync or path.existsSync
@@ -243,3 +245,52 @@ describe "A msg emitter"
         m
       "the callback fires five times": (m) ->
         assert.equal m.calledCount[3], 5
+
+
+  "when listening for resources as objects":
+    topic: ->
+      m = new MsgEmitter()
+      m.node = {resources: new Resource {name: "test node"}, [], {resource1: {asdf: 1234}, resource2: {asdf: 5678}, resource3: {subresource1: {asdf: 3456}}}}
+      callCount = (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
+      m.on {type: "hello", resource: {asdf: 1234}}, callCount
+      m.on {type: "hello", resource: {asdf: 3456}}, callCount
+      m.on {type: "world"}, callCount
+      m.on {resource: {asdf: 5678}}, callCount
+      m.calledCount = {}
+      m
+
+    "and a matching message is fired on a matching resource we have":
+      topic: (m) ->
+        m.emit {type: "hello", resource: "resource1", key: 1}
+        m
+      "the callback fires once": (m) ->
+        assert.equal m.calledCount[1], 1
+
+    "and a matching message is fired on a matching nested resource we have":
+      topic: (m) ->
+        m.emit {type: "hello", resource: ["resource3","subresource1"], key: 2}
+        m
+      "the callback fires once": (m) ->
+        assert.equal m.calledCount[2], 1
+
+    "and a matching message is fired with no resource":
+      topic: (m) ->
+        m.emit {type: "hello", key: 3}
+        m
+      "the callback does not fire": (m) ->
+        assert.equal m.calledCount[3], undefined
+
+    "and a matching message is fired on a resource we don't have":
+      topic: (m) ->
+        m.emit {type: "hello", resource: "resource0", key: 4}
+        m
+      "the callback does not fire": (m) ->
+        assert.equal m.calledCount[4], undefined
+
+    "and a non-matching message is fired on a resource we have":
+      topic: (m) ->
+        m.emit {type: "internet", resource: "resource1", key: 5}
+        m
+      "the callback does not fire": (m) ->
+        assert.equal m.calledCount[5], undefined
+
