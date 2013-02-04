@@ -156,7 +156,7 @@ class Resource
 
   scopePath: (path) ->
     for component, i in @path
-     #console.log "comparing", path[i], "with", component 
+     #console.log "comparing", path[i], "with", component
      break unless path[i] == component
     path.slice(i)
 
@@ -203,7 +203,7 @@ class Selector
       #console.log @node.name, "adding new resource", resource
       res = @node.resources.sub resource
       res.watch(@updateCB)
-      res.send type: "resource update request", scope: 'link'
+      #res.send type: "resource update request", scope: 'link'
       res.handleResourceUpdate {resource, merge, data}
 
       @matchedResources[strForm] = res
