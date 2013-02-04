@@ -91,14 +91,15 @@ class Resource
     @sendUpdate data, merge
     @merge data, merge
 
+  # This might need some serious optimisation
   snapshotMatch: (matcher, opts={}) ->
-    #console.log "snapshotMatching", matcher
+    if matches @data, matcher
+      @snapshot opts
+
     for name, resource of @data
-      if matches resource, matcher
-        #console.log "got match for", name
+      if typeof resource is 'object'
         sub = @at(name)
-        #console.log "sub data is", sub.data
-        sub.snapshot(opts)
+        sub.snapshotMatch matcher, opts
 
   snapshot: (opts={}) ->
     opts.scope = 'link'
