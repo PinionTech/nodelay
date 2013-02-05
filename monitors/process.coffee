@@ -26,7 +26,7 @@ procToMetrics = (p) ->
   m.vmUsage = p.vsize
 
   ticks = parseInt(p.utime) + parseInt(p.stime)
-  if oldTicks[p.pid]
+  if oldTicks[p.pid]?
     m.cpuUsage = (ticks - oldTicks[p.pid]) / (100 * (CHECK_INTERVAL / 1000))
   
   oldTicks[p.pid] = ticks

@@ -35,7 +35,7 @@ start = (res, cb) ->
 
   #TODO: Call callback only when process is actually running
   done = ->
-    pid = process.pid+1 #This is way dodgy
+    pid = process.pid
     if service.pidFile && service.writePidFile
       fs.writeFileSync service.pidFile, pid, 'utf8'
     cb?()
