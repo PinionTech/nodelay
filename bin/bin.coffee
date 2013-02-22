@@ -46,7 +46,7 @@ node.connect argv.host, argv.port, ->
    
 
 global.quiet = true
-repl = false
+isRepl = false
 
 printMsg = (msg) ->
   {from, type, data, resource} = msg
@@ -61,7 +61,7 @@ printMsg = (msg) ->
 node.on '*', (msg) ->
   unless global.quiet or msg.type is 'pong'
     printMsg msg
-    if repl
+    if isRepl
       process.stdout.write "\n" + repl.prompt + repl.rli.line
 
 global.node = node
@@ -70,13 +70,13 @@ global.send = (type, data) ->
   msg = node.buildMsg type, data
   node.sendRaw msg
   printMsg msg
-  process.exit() unless repl
+  process.exit() unless isRepl
 
 
 global.update = (path, data) ->
   node.resources.sub(path).update data
   printMsg from: node.name, type: "resource update", resource: path, data: data
-  process.exit() unless repl
+  process.exit() unless isRepl
 
 showResource = (path, depth) ->
   updateTimer = null
@@ -86,7 +86,7 @@ showResource = (path, depth) ->
 
   done = ->
     console.log util.inspect node.resources.data, false, depth, true
-    process.exit() unless repl
+    process.exit() unless isRepl
 
   setTimeout done, 5000
 
@@ -104,11 +104,11 @@ help = ->
   
 
 start = ->
-  if args
+  if args.length
     args[0] = args[0]+"()" if args.length is 1 and args[0].indexOf(' ') is -1
     coffee.eval args.join ' '  
   else
-    repl = true
+    isRepl = true
 
     repl = repl.start useGlobal: true, ignoreUndefined: true
     repl.on 'exit', process.exit
