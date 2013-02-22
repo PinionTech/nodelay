@@ -155,7 +155,7 @@ class Nodelay extends EventEmitter
     nodelay_monitor this
 
     for {name, resource} in @resources
-      res = @node.resource name
+      res = @node.resources.sub name
       res.update resource
       #res.watch()
 

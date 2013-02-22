@@ -277,11 +277,7 @@ class Node
 
   resource: (selector, cb) ->
     selector = [selector] if typeof selector is 'string'
-    if typeof selector is 'object'
-      if selector.constructor is Array
-        @resources.sub selector
-      else
-        new Resource.Selector this, selector, cb
+    new Resource.Selector this, selector, cb
 
 Node[k] = v for k, v of {MsgEmitter}
 
