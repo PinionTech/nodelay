@@ -38,7 +38,9 @@ deepMerge = (dst, src) ->
   #console.log "deepmerging", src, "into", dst
   for k, srcv of src
     dstv = dst[k]
-    if typeof dstv is 'object' and typeof srcv is 'object'
+    if srcv is null
+      delete dst[k]
+    else if typeof dstv is 'object' and typeof srcv is 'object'
       if (dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length
         deepMerge dstv, srcv
       else if (not dstv instanceof Array) and (not srcv instanceof Array)
@@ -99,7 +101,7 @@ class Resource
     for name, resource of @data
       if typeof resource is 'object'
         sub = @at(name)
-        sub.snapshotMatch matcher, opts
+        sub?.snapshotMatch(matcher, opts) or false
 
   snapshot: (opts={}) ->
     opts.scope = 'link'
