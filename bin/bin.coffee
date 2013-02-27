@@ -103,7 +103,10 @@ help = ->
   opts.showHelp(console.log)
   
 
+started = false
 start = ->
+  return if started
+  started = true
   if args.length
     args[0] = args[0]+"()" if args.length is 1 and args[0].indexOf(' ') is -1
     coffee.eval args.join ' '  
