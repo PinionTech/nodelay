@@ -5,13 +5,13 @@ Node  = require '../lib/node'
 
 CHECK_INTERVAL = 5000
 
-node = Node('process monitor').connect 'localhost', process.argv[2]
+node = Node('http monitor').connect 'localhost', process.argv[2]
 
 selector = node.resource url: '*'
 
 setInterval ->
   selector.each (path, res) ->
-    data = res.data    
+    data = res.data
     
     d = new Date()
     wasUp = data.up
@@ -21,7 +21,7 @@ setInterval ->
       data.latency ?= new Date() - d
       data.up = true
       res.update data
-      res.send "up" if !wasUp 
+      res.send "up" if !wasUp
     down = (data) ->
       data.latency ?= new Date() - d
       data.up = false
@@ -39,7 +39,7 @@ setInterval ->
         }
     req.on 'error', (err) ->
       down { statusCode: null, latency: null }
-      res.send "http error", err.message      
+      res.send "http error", err.message
 
 , CHECK_INTERVAL
 
