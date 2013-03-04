@@ -17,7 +17,8 @@
     "ws": "*",
     "assert": "*",
     "fs-ext": "~0.2.3",
-    "request": "~2.12.0"
+    "request": "~2.12.0",
+    "toobusy": "~0.2.2"
   },
   "devDependencies": {
     "vows": "*"

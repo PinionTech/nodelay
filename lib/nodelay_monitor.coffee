@@ -1,4 +1,5 @@
 fs = require 'fs'
+toobusy = require 'toobusy'
 
 UPDATE_INTERVAL = 15000
 
@@ -24,20 +25,27 @@ class NodelayMonitor
       pid: process.pid
     }
 
-    setTimeout =>
-      @updateRates()
-      @updateUsage()
-    , 0
+    @currentUpdate = {}
 
-    setInterval =>
-      @updateRates()
-      @updateUsage()
+    setTimeout @update, 0
+    setInterval @update, UPDATE_INTERVAL
 
-    , UPDATE_INTERVAL
+  flush: ->
+    @resource.update @currentUpdate
+    @currentUpdate = {}
+
+  update: =>
+    @updateRates()
+    @updateUsage()
+    @updateLag()
+    @flush()
+
+  updateLag: ->
+    @currentUpdate.lag = toobusy.lag()
 
   updateUsage: ->
     # Todo: probably pull this out and just use the standard service monitor
-    @resource.update mem_usage: process.memoryUsage()
+    @currentUpdate.mem_usage = process.memoryUsage()
     fs.readFile "/proc/#{process.pid}/stat", 'utf8', (err, data) =>
       return if err # We probably don't have procfs
       vals = data.split(' ')
@@ -46,14 +54,15 @@ class NodelayMonitor
         timediff = (new Date() - @oldDate) / 1000
         # 100 Jiffies per second, ticks measured in jiffies
         usage = (ticks - @oldTicks) / (100 * timediff)
-        @resource.update cpu_usage: Math.round(usage*1000)/1000
+        @currentUpdate.cpu_usage = Math.round(usage*1000)/1000
 
       @oldTicks = ticks
       @oldDate = new Date()
 
   updateRates: ->
     if @rates
-      @resource.update in_rate: round3(diff(@node.stats.in, @rates.in)), out_rate: round3(diff(@node.stats.out, @rates.out))
+      @currentUpdate.in_rate = round3(diff(@node.stats.in, @rates.in))
+      @currentUpdate.out_rate = round3(diff(@node.stats.out, @rates.out))
     @rates = in: @node.stats.in, out: @node.stats.out
 
 
