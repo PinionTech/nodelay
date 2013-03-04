@@ -69,8 +69,7 @@ class NodelayMonitor
 
   updateRates: ->
     for rate in qw "in out connect disconnect discard"
-      if @rates
-        @currentUpdate[rate+"_rate"] = round3(diff(@node.stats[rate], @rates[rate]))
+      @currentUpdate[rate+"_rate"] = round3(diff(@node.stats[rate], @rates[rate])) if @rates[rate]
       @rates[rate] = @node.stats[rate]
 
 

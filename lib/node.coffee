@@ -20,6 +20,7 @@ class Parent extends EventEmitter
 
   connect: (@host, @port, @cb) ->
     console.log @node.name, "connecting to", @host, "on", @port
+    @ws?.close()
     @ws = new ws "ws://#{host}:#{port}"
     @ws.on 'message', (data) => @recv data, @ws
     @ws.on 'open', =>
@@ -28,7 +29,7 @@ class Parent extends EventEmitter
 
       for tag, matcher of @matchers
         @send type: "listen", scope: "link", data: matcher, tag: tag
-      
+
       # This should be in Resource via a listener or such
       for name, data of @node.resources.data
         @send type: "resource update", resource: name, data: data
@@ -52,14 +53,18 @@ class Parent extends EventEmitter
 
     @ws.on 'error', (err) =>
       console.log @node.name, "error", err.message
+      clearInterval @pingInterval
       @reconnect()
 
     this
 
   reconnect: =>
+    return if @reconnecting
+    @reconnecting = true
     console.log @node.name, "reconnecting in 5s"
     setTimeout =>
       @connect @host, @port, @cb
+      @reconnecting = false
     , 5000
 
   send: (type, data) =>
@@ -114,7 +119,7 @@ class Children extends MsgEmitter
     @wss = new ws.Server {host, port}
     @wss.on 'connection', (client) =>
       @node.stats.connect++
-      @node.stats.connected++
+      @node.stats.connections++
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
@@ -122,7 +127,7 @@ class Children extends MsgEmitter
 
       client.nodelay_listeners = []
       client.on 'close', =>
-        @node.stats.connect--
+        @node.stats.connections--
         @node.stats.disconnect++
         for listener in client.nodelay_listeners
           @outEmitter.removeListener listener
@@ -209,7 +214,7 @@ class Node
   constructor: (name) ->
     return new Node(name) if this is global
 
-    @stats = {in: 0, out: 0, discard: 0, connect: 0, disconnect: 0, connected: 0, listeners: 0}
+    @stats = {in: 0, out: 0, discard: 0, connect: 0, disconnect: 0, connections: 0, listeners: 0}
 
     @name = name or Math.random().toFixed(10).slice(2)
 
