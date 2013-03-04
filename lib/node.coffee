@@ -32,7 +32,7 @@ class Parent extends EventEmitter
       # This should be in Resource via a listener or such
       for name, data of @node.resources.data
         @send type: "resource update", resource: name, data: data
-      
+
       ping = true
       @pingInterval = setInterval =>
         if ping is false
@@ -55,7 +55,7 @@ class Parent extends EventEmitter
       @reconnect()
 
     this
-  
+
   reconnect: =>
     console.log @node.name, "reconnecting in 5s"
     setTimeout =>
@@ -85,7 +85,7 @@ class Parent extends EventEmitter
     unless msg
       @node.stats.discarded++
       return
-    
+
     @node.stats.in++
     tag = msg.tag
     delete msg.tag
@@ -113,6 +113,8 @@ class Children extends MsgEmitter
 
     @wss = new ws.Server {host, port}
     @wss.on 'connection', (client) =>
+      @node.stats.connect++
+      @node.stats.connected++
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
@@ -120,15 +122,18 @@ class Children extends MsgEmitter
 
       client.nodelay_listeners = []
       client.on 'close', =>
+        @node.stats.connect--
+        @node.stats.disconnect++
         for listener in client.nodelay_listeners
           @outEmitter.removeListener listener
+          @node.stats.listeners--
     this
 
   recv: (data, client) =>
     #console.log "parent", @node.name, "received", data
     msg = @node.processMsg data, client
     unless msg
-      @node.stats.discarded++
+      @node.stats.discard++
       return
     @node.stats.in++
 
@@ -146,7 +151,7 @@ class Children extends MsgEmitter
     client.name = msg.data if msg.type is "name" and msg.scope is 'link'
 
     @emit msg
-    
+
     if msg.type is "listen"
       #console.log "got #{if client.authed then 'authed ' else ''}listen for", msg
       tag = msg.tag
@@ -180,12 +185,13 @@ class Children extends MsgEmitter
         rmsg.tag = tag
         client.send JSON.stringify rmsg
         delete rmsg.tag
-      
+
+      @node.stats.listeners++
       @outEmitter.on msg.data, cb
       client.nodelay_listeners.push cb
 
   send: (type, data) => @sendRaw @node.buildMsg type, data
- 
+
   sendRaw: (msg) ->
     @node.stats.out++
     #console.log "sendRawing", msg if msg.type is 'resource update'
@@ -199,28 +205,28 @@ class Children extends MsgEmitter
 class Node
   @connect = (args...) -> Node().connect args...
   @listen = (args...) -> Node().listen args...
-  
+
   constructor: (name) ->
     return new Node(name) if this is global
 
-    @stats = {in: 0, out: 0, discarded: 0}
+    @stats = {in: 0, out: 0, discard: 0, connect: 0, disconnect: 0, connected: 0, listeners: 0}
 
     @name = name or Math.random().toFixed(10).slice(2)
 
     @resources = new Resource this, [], {}
 
-  connect: (host, port=44445, cb) -> 
+  connect: (host, port=44445, cb) ->
     [port, cb] = [44445, port] if typeof port is 'function'
-    
+
     @parent = new Parent this, host, port, cb
     this
-  
+
   listen: (host="127.0.0.1", port=44445, cb) ->
     [port, cb] = [44445, port] if typeof port is 'function'
 
     @children = new Children this, host, port, cb
     this
-   
+
   sendRaw: (msg) ->
     @parent?.sendRaw msg
     @children?.sendRaw msg
@@ -234,7 +240,7 @@ class Node
       msg = type
     msg.from ||= @name
     msg.time = new Date().toISOString()
-    
+
     if msg.signed and @privkey
       signer = crypto.createSign HASH_ALG
       signer.update JSON.stringify msg
@@ -250,7 +256,7 @@ class Node
 
     from = if typeof msg.from is 'object' then msg.from[0] else msg.from
     to   = if typeof msg.to is 'object' then msg.to[0] else msg.to
-    
+
     return if from is @name
     return if to and to isnt @name
 
@@ -262,7 +268,7 @@ class Node
       else
         verifier = crypto.createVerify HASH_ALG
         verifier.update JSON.stringify msg
-        msg.signed = verifier.verify @pubkey, signature, 'base64'  
+        msg.signed = verifier.verify @pubkey, signature, 'base64'
 
     msg
 

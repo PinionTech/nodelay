@@ -7,6 +7,8 @@ diff = (a, b) -> (a - b) / (UPDATE_INTERVAL / 1000)
 
 round3 = (x) -> Math.round(x*1000)/1000
 
+qw = (s) -> s.split /\s+/
+
 class NodelayMonitor
   constructor: (nodelay) ->
     return new NodelayMonitor nodelay if this is global
@@ -26,6 +28,7 @@ class NodelayMonitor
     }
 
     @currentUpdate = {}
+    @rates = {}
 
     setTimeout @update, 0
     setInterval @update, UPDATE_INTERVAL
@@ -36,6 +39,7 @@ class NodelayMonitor
 
   update: =>
     @updateRates()
+    @updateStats()
     @updateUsage()
     @updateLag()
     @flush()
@@ -59,11 +63,15 @@ class NodelayMonitor
       @oldTicks = ticks
       @oldDate = new Date()
 
+  updateStats: ->
+    for stat in qw "connections listeners"
+      @currentUpdate[stat] = @node.stats[stat]
+
   updateRates: ->
-    if @rates
-      @currentUpdate.in_rate = round3(diff(@node.stats.in, @rates.in))
-      @currentUpdate.out_rate = round3(diff(@node.stats.out, @rates.out))
-    @rates = in: @node.stats.in, out: @node.stats.out
+    for rate in qw "in out connect disconnect discard"
+      if @rates
+        @currentUpdate[rate+"_rate"] = round3(diff(@node.stats[rate], @rates[rate]))
+      @rates[rate] = @node.stats[rate]
 
 
 module.exports = NodelayMonitor
