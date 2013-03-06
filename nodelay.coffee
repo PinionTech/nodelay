@@ -9,9 +9,8 @@ nodelay_monitor = require './lib/nodelay_monitor'
 children = []
 
 forkCoffee = (script, args, options={}) ->
-  # XXX This doesn't seem to be needed anymore - somehow it's auto-finding the coffee binary
-  #coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
-  #[oldExecPath, process.execPath] = [process.execPath, coffeePath]
+  coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
+  [oldExecPath, process.execPath] = [process.execPath, coffeePath]
   if not fs.existsSync script
     script = path.join __dirname, script
     options.cwd ?= __dirname
@@ -19,7 +18,7 @@ forkCoffee = (script, args, options={}) ->
   child = fork script, args, options
   child.on 'exit', (code, signal) -> handleRestart code, signal, script, args, options
   children.push child
-  #process.execPath = oldExecPath
+  process.execPath = oldExecPath
   child
 
 process.on 'uncaughtException', (e) ->
