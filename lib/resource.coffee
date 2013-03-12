@@ -57,6 +57,44 @@ clobber = (dst, src) ->
 
 matches = MsgEmitter.matches
 
+class Vclock
+  constructor: (@node) ->
+    @vclocks = {}
+
+  get: (path) ->
+    if val = @vclocks[path.join '\x1f']
+      return val
+    else if path.length > 0
+      return @at path.slice 0, -1
+    else
+      return null
+
+  inc: (path) ->
+    myname = if @node.name instanceof Array then @node.name.join '\x1f' else @node.name
+    clock = @vclocks[path.join '\x1f'] ?= {}
+    clock[myname] ||= 0
+    clock[myname]++
+
+  update: (path, clocks) ->
+    clock = @vclocks[path.join '\x1f'] ?= {}
+    for name, ver of clocks
+      clock[name] = Math.max(clock[name] or 0, ver)
+
+  remove: (name) ->
+    name = name.join '\x1f' if name instanceof Array
+    for path, clock of @vclocks
+      delete clock[name]
+
+  conflicts: (path, newclock) ->
+    oldclock = @get path
+    return false if !oldclock
+
+    for name, ver of oldclock
+      return true if !newclock[name]? or newclock[name] < ver
+
+    return false
+
+
 class Resource
   constructor: (@node, @path, @data) ->
 
@@ -66,7 +104,7 @@ class Resource
     for comp in path
       cur = cur[comp]
       return null unless cur?
-    
+
     new Resource @node, @path.concat(path), cur
 
 
@@ -76,11 +114,11 @@ class Resource
     #console.log "data is", @data
     #console.log "@#*@&#(@*%" if @data[0]
     path = Array.prototype.slice.apply(arguments) if typeof path is 'string'
-    
+
     for comp in path
       cur[comp] ||= {}
       cur = cur[comp]
-    
+
     new Resource @node, @path.concat(path), cur
 
   merge: (data, merge="simple") ->
@@ -222,6 +260,6 @@ class Selector
     for path, res of @matchedResources
       cb res.path, res
 
-Resource[k] = v for k, v of {Selector, onlyChanges, deepMerge, clobber, matches}
+Resource[k] = v for k, v of {Selector, Vclock, onlyChanges, deepMerge, clobber, matches}
 
 module.exports = Resource

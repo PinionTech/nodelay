@@ -218,6 +218,7 @@ class Node
 
     @name = name or Math.random().toFixed(10).slice(2)
 
+    @vclock = new Resource.Vclock this
     @resources = new Resource this, [], {}
 
   connect: (host, port=44445, cb) ->
