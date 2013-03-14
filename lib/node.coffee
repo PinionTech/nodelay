@@ -35,6 +35,7 @@ class Parent extends EventEmitter
         @send type: "resource update", resource: name, data: data
 
       ping = true
+      clearInterval @pingInterval
       @pingInterval = setInterval =>
         if ping is false
           console.log @node.name, "ping timed out to parent"
