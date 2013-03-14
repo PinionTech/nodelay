@@ -40,6 +40,7 @@ class NodelayMonitor
   update: =>
     @updateRates()
     @updateStats()
+    @updateByNode()
     @updateUsage()
     @updateLag()
     @flush()
@@ -71,6 +72,19 @@ class NodelayMonitor
     for rate in qw "in out connect disconnect discard"
       @currentUpdate[rate+"_rate"] = round3(diff(@node.stats[rate], @rates[rate])) if @rates[rate]
       @rates[rate] = @node.stats[rate]
+
+  updateByNode: ->
+    @currentUpdate.by_node ?= {}
+
+    for name, node of @node.stats.by_node
+      update = @currentUpdate.by_node[name] ?= {}
+
+      update[stat] = node[stat] for stat in qw "listeners" when node[stat]?
+
+      for rate in qw "in"
+        ratename = "#{name}.#{rate}"
+        update[rate+"_rate"] = round3(diff(node[rate], @rates[ratename])) if @rates[ratename]
+        @rates[ratename] = node[rate]
 
 
 module.exports = NodelayMonitor

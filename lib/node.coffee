@@ -23,9 +23,12 @@ class Parent extends EventEmitter
     @ws?.close()
     @ws = new ws "ws://#{host}:#{port}"
     @ws.on 'message', (data) => @recv data, @ws
+
     @ws.on 'open', =>
       @node.send type: 'auth', signed: true, scope: 'link' if @node.privkey
       @node.send type: 'name', scope: 'link', data: @node.name
+
+      @node.stats.by_node.parent ?= {in: 0}
 
       for tag, matcher of @matchers
         @send type: "listen", scope: "link", data: matcher, tag: tag
@@ -93,6 +96,7 @@ class Parent extends EventEmitter
       return
 
     @node.stats.in++
+    @node.stats.by_node.parent.in++
     tag = msg.tag
     delete msg.tag
     @emit tag, msg
@@ -121,6 +125,7 @@ class Children extends MsgEmitter
     @wss.on 'connection', (client) =>
       @node.stats.connect++
       @node.stats.connections++
+
       if @node.auth and client._socket.remoteAddress == '127.0.0.1'
         client.authed = true
       cb?()
@@ -130,9 +135,18 @@ class Children extends MsgEmitter
       client.on 'close', =>
         @node.stats.connections--
         @node.stats.disconnect++
+
+        if client.name
+          delete @node.stats.by_node[client.name]
+        else
+          @node.stats.by_node.anonymous.listeners -= client.nodelay_listeners.length
+
         for listener in client.nodelay_listeners
           @outEmitter.removeListener listener
-          @node.stats.listeners--
+
+        @node.stats.listeners -= client.nodelay_listeners.length
+
+
     this
 
   recv: (data, client) =>
@@ -142,6 +156,8 @@ class Children extends MsgEmitter
       @node.stats.discard++
       return
     @node.stats.in++
+    #console.log "client name", client.name or "anonymous"
+    @node.stats.by_node[client.name or "anonymous"].in++
 
     if @node.auth and !client.authed and (msg.type isnt 'listen' or msg.scope isnt 'link')
       if msg.type is "auth" and msg.signed and @node.auth msg
@@ -154,7 +170,9 @@ class Children extends MsgEmitter
         client.close()
         return
 
-    client.name = msg.data if msg.type is "name" and msg.scope is 'link'
+    if msg.type is "name" and msg.scope is 'link'
+      client.name = msg.data
+      @node.stats.by_node[client.name] = {in: 0, listeners: 0}
 
     @emit msg
 
@@ -192,6 +210,8 @@ class Children extends MsgEmitter
         client.send JSON.stringify rmsg
         delete rmsg.tag
 
+      console.log client.name, "listening for", msg.data
+      @node.stats.by_node[client.name or "anonymous"].listeners++
       @node.stats.listeners++
       @outEmitter.on msg.data, cb
       client.nodelay_listeners.push cb
@@ -216,6 +236,7 @@ class Node
     return new Node(name) if this is global
 
     @stats = {in: 0, out: 0, discard: 0, connect: 0, disconnect: 0, connections: 0, listeners: 0}
+    @stats.by_node = {anonymous: {in: 0, listeners: 0}}
 
     @name = name or Math.random().toFixed(10).slice(2)
 
