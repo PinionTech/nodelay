@@ -35,16 +35,23 @@ onlyChanges = (older, newer) ->
 
 
 deepMerge = (dst, src) ->
-  #console.log "deepmerging", src, "into", dst
+  # Can't merge different-length arrays, but we zero-length it so we preserve the reference
+  dst.length = 0 if dst instanceof Array and src instanceof Array and dst.length != src.length
+
   for k, srcv of src
     dstv = dst[k]
     if srcv is null
       delete dst[k]
     else if typeof dstv is 'object' and typeof srcv is 'object'
+
+      # Merging two arrays
       if (dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length
         deepMerge dstv, srcv
-      else if (not dstv instanceof Array) and (not srcv instanceof Array)
+
+      # Merging two objects
+      else if (dstv not instanceof Array) and (srcv not instanceof Array)
         deepMerge dstv, srcv
+
       else
         dst[k] = srcv
     else
@@ -122,6 +129,9 @@ class Resource
     new Resource @node, @path.concat(path), cur
 
   merge: (data, merge="simple") ->
+    # This doesn't deal properly with simple values (ie can't merge numbers or bools if that's the entire contents of the resource)
+    # We could probably do this by ascending one level up the tree and replacing the data
+    # But that sounds hard and I don't need the functionality for anything
     switch merge
       when "simple" then deepMerge @data, data
       when "clobber" then clobber @data, data

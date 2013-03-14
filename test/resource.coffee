@@ -18,7 +18,7 @@ t = (fn) ->
     fn.apply this, args
     return
 
-{onlyChanges, snapshotMatch} = resource
+{onlyChanges, deepMerge, snapshotMatch} = resource
 
 describe "A resource"
   "is created with resource(node, path, args)":
@@ -109,6 +109,43 @@ describe "onlyChanges"
 
       "returns null": (v) -> assert.strictEqual v, null
 
+
+inverseDeepMergeTest = (src, dst) -> ->
+  diff = onlyChanges src, dst
+  #console.log "diff of", src, "and", dst, "is", diff
+  if diff is null
+    result = dst
+    #console.log "result is just", dst
+  else
+    result = JSON.parse JSON.stringify src
+    deepMerge result, diff
+    #console.log "result of merging", src, "with", diff, "is", result
+  assert.deepEqual result, dst
+
+describe "deepMerge"
+  "should be the inverse of onlyChanges":
+    "on two arrays":
+      "when the second is longer than the first": inverseDeepMergeTest([1,2,3,4], [1,2,3,4,5,6])
+      "when the second is shorter than the first": inverseDeepMergeTest([1,2,3,4], [1,2])
+      "when the second is equal to the first": inverseDeepMergeTest([1,2,3,4], [1,2,3,4])
+
+    "on two objects":
+      "when there are new keys in the new object": inverseDeepMergeTest({a:1}, {a:1, b:2})
+      "when there are the same keys with changed values": inverseDeepMergeTest({a:1, b:2}, {a:1, b:3})
+      "when there are the same keys with the same values": inverseDeepMergeTest({a:1, b:2}, {a:1, b:2})
+      "when keys are removed in the new object": inverseDeepMergeTest({a:1, b:2}, {a:1})
+
+    "on an object containing objects":
+      "when the nested objects have changes": inverseDeepMergeTest({a:{a:1,b:2}, b:{a:1,b:2}}, {a:{a:1,b:2}, b:{a:1,b:1}})
+      "when the nested objects have no changes": inverseDeepMergeTest({a:{a:1,b:2}, b:{a:1,b:2}}, {a:{a:1,b:2}, b:{a:1,b:2}})
+
+    "on same-sized arrays containing objects":
+      "when the nested objects have changes": inverseDeepMergeTest([{a:1},{b:2},{c:3}],[{a:1},{b:1},{c:3}])
+      "when the nested objects have no changes": inverseDeepMergeTest([{a:1},{b:2},{c:3}],[{a:1},{b:2},{c:3}])
+
+    "on same-sized arrays containing arrays":
+      "when the nested arrays have changes": inverseDeepMergeTest([[1,2,3],[4,5,6],[7,8,9]],[[1,1,3],[4,5,6],[7,8,9]])
+      "when the nested arrays have no changes": inverseDeepMergeTest([[1,2,3],[4,5,6],[7,8,9]],[[1,2,3],[4,5,6],[7,8,9]])
 
 fakeResource = (data) -> ->
       res = new resource(null, [], data)
