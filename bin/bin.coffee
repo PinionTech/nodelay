@@ -56,7 +56,7 @@ printMsg = (msg) ->
   header = "[#{from} #{RED}#{type}#{RESET}]"
   header += " [#{GREEN}#{resource.join '>'}#{RESET}]" if resource
   header += "\n" if contents.indexOf('\n') >= 0
-  console.log header, contents 
+  console.log header, contents
 
 node.on '*', (msg) ->
   unless global.quiet or msg.type is 'pong'
@@ -91,7 +91,7 @@ showResource = (path, depth) ->
   setTimeout done, 5000
 
 
-global.resources = (depth=999) -> showResource {}, depth
+global.resources = (depth=999) -> showResource [], depth
 global.resource = (resource, depth=999) -> showResource resource, depth
 
 global.stream = ->
