@@ -83,7 +83,7 @@ class Nodelay extends EventEmitter
         @emit "connected"
 
     @node.listen @bind, @port
-    
+
 
     if @scope
       @node.parent?.inFilter = (msg) =>
@@ -101,11 +101,11 @@ class Nodelay extends EventEmitter
           msg = newmsg
         if msg.resource
           if typeof msg.resource is 'string'
-            msg.resource = [msg.resource] 
+            msg.resource = [msg.resource]
           else
             msg.resource = msg.resource.slice()
           msg.resource.unshift @scope...
-        if msg.type is "listen" and msg.data.resource instanceof Array 
+        if msg.type is "listen" and msg.data.resource instanceof Array
           newdata = {}
           newdata[k] = v for k, v of msg.data
           msg.data = newdata
@@ -116,7 +116,7 @@ class Nodelay extends EventEmitter
             msg.data.resource = msg.data.resource.slice()
           msg.data.resource.unshift @scope...
         msg
-      
+
     # Forward mesages from parent to children
     @node.parent?.on {type: '*', resource: []}, (msg) => @node.children.forward msg unless msg.scope is 'link'
 
@@ -125,7 +125,7 @@ class Nodelay extends EventEmitter
     @node.resources.watch()
 
     #@node.children.on 'resource update', @node.resources.handleResourceUpdate
-    
+
 
     # Forward messages from one child to all children
     @node.children.on '*', (msg) => @node.children.forward msg unless msg.scope is 'link'

@@ -18,7 +18,7 @@ msgMatches = (msg, match, resources) ->
         return false
     else
       return false unless objv is matchv or matchv is '*'
-  
+
   return true
 
 matches = (obj, match) ->
@@ -28,7 +28,7 @@ matches = (obj, match) ->
       return false unless matches objv, matchv
     else
       return false unless objv is matchv or (matchv is '*' and objv isnt undefined)
-  
+
   return true
 
 matchArrayHead = (matcher, matchee) ->
@@ -44,7 +44,7 @@ matchArrayHead = (matcher, matchee) ->
 class MatchIndex
   constructor: ->
     @matchsets = []
-  
+
   add: (matchset) ->
     @matchsets.push matchset
 
@@ -59,7 +59,7 @@ class MatchIndex
 
   each: (cb) ->
     cb matchset for matchset in @matchsets
-  
+
   fire: (msg, resources) ->
     matchset.fire msg, resources for matchset in @matchsets
     return
@@ -71,7 +71,7 @@ class MatchIndex
 class MatchSet
   constructor: (@matcher) ->
     @cbs = []
-  
+
   add: (cb) ->
     @cbs.push cb
 
@@ -106,12 +106,12 @@ class MsgEmitter
       @indices.resource = {}
       for attrib in @indexAttribs
         @indices[attrib] = {}
-    
+
     matchset = @all.find matcher
     if !matchset
       matchset = new MatchSet(matcher)
       @addIndices matchset
-      
+
     matchset.add cb
 
     return
@@ -140,7 +140,7 @@ class MsgEmitter
 
   removeListener: (cb) ->
     return unless @all
-    
+
     remove = []
     @all.each (matchset) ->
       matchset.remove(cb)
@@ -158,12 +158,12 @@ class MsgEmitter
   removeAllListeners: ->
     @all = null
     @indices = null
-  
+
   emit: (msg) ->
     return unless @all
 
     if val = msg.resource?[0]
-      @indices.resource[val]?.fire msg, @node?.resources      
+      @indices.resource[val]?.fire msg, @node?.resources
 
     for attrib in @indexAttribs
       if (val = msg[attrib])?

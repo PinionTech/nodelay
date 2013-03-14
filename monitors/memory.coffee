@@ -21,7 +21,7 @@ diff = (k, v) ->
 
 setInterval ->
   proc.meminfo (err, data) ->
-    updata = 
+    updata =
       memory:
         total: data.MemTotal
         free: data.MemFree + data.Buffers + data.Cached
@@ -32,7 +32,7 @@ setInterval ->
         commit:
           limit: data.CommitLimit
           total: data.Committed_AS
-      swap: 
+      swap:
         total: data.SwapTotal
         free: data.SwapFree
         used: data.SwapTotal - data.SwapFree

@@ -24,12 +24,12 @@ describe "A fully managed service"
       service "service"
         start: "coffee daemons/simple.coffee"
         pidFile: "/tmp/service#{(''+Math.random().toFixed(10)).slice(2)}"
-    
+
     "which returns an object": (s) -> assert.isObject s
-    
+
     "and started with start()":
       topic: t (s) -> s.start (e) => @callback e, s
-      
+
       "which gives the service a pid": (s) ->
         assert.notEqual s.pid, undefined
 
@@ -43,18 +43,18 @@ describe "A fully managed service"
       "and stopped with stop()":
         topic: t (s) -> s.stop (e) =>
           @callback e, s
-        
+
         "which stops the service": (s) ->
           assert.ok !exists "/proc/#{s.pid}"
 
         "which stops all subprocesses":
           topic: t (_, s) ->
             exec "ps -o '%p' --no-headers --ppid #{s.pid}", @callback
-  
-          "": (err, stdout, stderr, a, b, c) ->          
+
+          "": (err, stdout, stderr, a, b, c) ->
             assert.equal stdout, ''
 
 
         "and deletes the pidfile": (s) ->
-          assert.ok !exists s.pidFile 
+          assert.ok !exists s.pidFile
 

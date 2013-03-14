@@ -23,7 +23,7 @@ t = (fn) ->
 describe "A resource"
   "is created with resource(node, path, args)":
     topic: -> new resource({}, [], {})
-    
+
     "which returns an object": (s) -> assert.isObject s
 
 
@@ -31,28 +31,28 @@ describe "onlyChanges"
   "on two values":
     "when the values are unequal":
       topic: -> onlyChanges 1, 2
-      
+
       "returns the second value": (v) -> assert.equal v, 2
 
     "when the values are equal":
       topic: -> onlyChanges 5, 5
-      
+
       "returns null": (v) -> assert.strictEqual v, null
 
   "on two arrays":
     "when the second is longer than the first":
       topic: -> onlyChanges [1,2,3,4], [1,2,3,4,5,6]
-    
+
       "returns the second value": (v) -> assert.deepEqual v, [1,2,3,4,5,6]
 
     "when the second is shorter than the first":
       topic: -> onlyChanges [1,2,3,4], [1,2]
-    
+
       "returns the second value": (v) -> assert.deepEqual v, [1,2]
 
     "when the second is equal to the first":
       topic: -> onlyChanges [1,2,3,4], [1,2,3,4]
-    
+
       "returns null": (v) -> assert.strictEqual v, null
 
   "on two objects":
@@ -63,17 +63,17 @@ describe "onlyChanges"
 
     "when there are the same keys with changed values":
       topic: -> onlyChanges {a:1, b:2}, {a:1, b:3}
-    
+
       "returns the keys with changed values": (v) -> assert.deepEqual v, {b:3}
 
     "when there are the same keys with the same values":
       topic: -> onlyChanges {a:1, b:2}, {a:1, b:2}
-    
+
       "returns null": (v) -> assert.strictEqual v, null
 
     "when keys are removed in the new object":
       topic: -> onlyChanges {a:1, b:2}, {a:1}
-    
+
       "returns null": (v) -> assert.strictEqual v, null
 
   "on an object containing objects":
@@ -113,7 +113,7 @@ describe "onlyChanges"
 fakeResource = (data) -> ->
       res = new resource(null, [], data)
       res.updateCount = {}
-      res.node = 
+      res.node =
         name: "test node"
         buildMsg: (type, data) -> if typeof type is "string" then {type, data} else type
         send: (msg) -> res.updateCount[msg.key] ?= 0; res.updateCount[msg.key]++
@@ -122,7 +122,7 @@ fakeResource = (data) -> ->
 describe "snapshotMatch"
   "when called on a one-level deep resource":
     topic: fakeResource {a: 1, b: 2, c: 3}
-    
+
     "and a matcher with one matching field":
       topic: (r) -> r.snapshotMatch {a: 1}, {key: 1}; r
 
@@ -135,7 +135,7 @@ describe "snapshotMatch"
 
   "when called on a two-level deep resource":
     topic: fakeResource {a: 1, b: 2, c: {a: 1, b: 3}}
-    
+
     "and a matcher with one matching field":
       topic: (r) -> r.snapshotMatch {b: 2}, {key: 1}; r
 

@@ -28,9 +28,9 @@ procToMetrics = (p) ->
   ticks = parseInt(p.utime) + parseInt(p.stime)
   if oldTicks[p.pid]?
     m.cpuUsage = (ticks - oldTicks[p.pid]) / (100 * (CHECK_INTERVAL / 1000))
-  
+
   oldTicks[p.pid] = ticks
-  
+
   m.children = (procToMetrics(child) for pid, child of p.children)
 
   m

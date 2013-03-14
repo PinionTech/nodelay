@@ -184,7 +184,7 @@ class Children extends MsgEmitter
         resource = msg.data.resource
         from = msg.from
         sendUpdate = =>
-          if typeof resource is 'object' and resource not instanceof Array 
+          if typeof resource is 'object' and resource not instanceof Array
             @node.resources.snapshotMatch resource, to: from
           else
             @node.resources.at(resource)?.snapshot to: from

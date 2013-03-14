@@ -43,7 +43,7 @@ node.connect argv.host, argv.port, ->
     node.privkey = fs.readFileSync(argv.key)
     node.send type: "auth", signed: true
   start()
-   
+
 
 global.quiet = true
 isRepl = false
@@ -95,13 +95,13 @@ global.resources = (depth=999) -> showResource [], depth
 global.resource = (resource, depth=999) -> showResource resource, depth
 
 global.stream = ->
-  global.quiet = false  
+  global.quiet = false
 global.unstream = ->
-  global.quiet = true  
+  global.quiet = true
 
 help = ->
   opts.showHelp(console.log)
-  
+
 
 started = false
 start = ->
@@ -109,7 +109,7 @@ start = ->
   started = true
   if args.length
     args[0] = args[0]+"()" if args.length is 1 and args[0].indexOf(' ') is -1
-    coffee.eval args.join ' '  
+    coffee.eval args.join ' '
   else
     isRepl = true
 

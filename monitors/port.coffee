@@ -5,7 +5,7 @@ node = Node('port monitor').connect 'localhost', process.argv[2]
 
 getInfo = (cb) ->
   child = spawn 'netstat', ['-utlpn']
-  byProcess = {} 
+  byProcess = {}
   child.stdout.on 'data', (data) ->
     data = data.toString('utf8')
     for line in data.split '\n'

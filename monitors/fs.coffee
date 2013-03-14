@@ -34,7 +34,7 @@ setInterval ->
       catch e
         # Guess it wasn't a symlink after all
       updata[name] = mount
-      
+
       u = updata[name]
       statvfs = fs.statVFS mount.mountpoint
       kb = statvfs.f_frsize / 1024

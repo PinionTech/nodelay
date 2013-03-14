@@ -23,7 +23,7 @@ t = (fn) ->
 describe "A msg emitter"
   "is created with new MsgEmitter()":
     topic: -> new MsgEmitter
-    
+
     "which returns an object": (s) -> assert.isObject s
 
   "when listening for anything":
@@ -180,7 +180,7 @@ describe "A msg emitter"
         assert.equal m.calledCount[4], undefined
 
 
-  "when listening for an object with a scope property": 
+  "when listening for an object with a scope property":
     topic: ->
       m = new MsgEmitter()
       m.on {scope: 'link'}, (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
@@ -210,7 +210,7 @@ describe "A msg emitter"
         assert.equal m.calledCount[3], undefined
 
 
-  "when listening for several messages at once": 
+  "when listening for several messages at once":
     topic: ->
       m = new MsgEmitter()
       callCount = (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++

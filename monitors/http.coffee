@@ -12,7 +12,7 @@ selector = node.resource url: '*'
 setInterval ->
   selector.each (path, res) ->
     data = res.data
-    
+
     d = new Date()
     wasUp = data.up
     opts = url.parse data.url

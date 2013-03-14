@@ -38,7 +38,7 @@ setInterval ->
       cpus: data.cpus
       cpu:
         total: getCPU(data.cpu, 1/data.cpus)
-    
+
     updata.cpu[k] = getCPU v for k, v of data when k.slice(0,3) is 'cpu' and -k[3] <= 0
     updata[k] = data[k] for k in qw "procs_running procs_blocked"
     updata.cswitches = diff 'ctxt', data.ctxt

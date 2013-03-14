@@ -6,8 +6,8 @@ Node  = require '../lib/node'
 
 run = (cmd, extra_opts, cb) ->
   [extra_opts, cb] = [undefined, extra_opts] if typeof extra_opts is 'function'
-  
-  opts = 
+
+  opts =
     detached: true
     stdio: 'inherit'
   opts[k] = v for k, v of extra_opts

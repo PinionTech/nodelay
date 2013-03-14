@@ -22,7 +22,7 @@ node.resource process: '*', (res) ->
       sub.send "info", "Killed zombie child"
       #FIXME: shouldn't have to do this
       delete child.state
-     
+
     else if myavgs.length == WINDOW
       avg = myavgs.reduce((a, b) -> a + b) / WINDOW
       if avg >= 0.8
@@ -32,4 +32,4 @@ node.resource process: '*', (res) ->
         delete avgs[pid]
         #FIXME: shouldn't have to do this
         delete child.cpuUsage
-   
+

@@ -55,11 +55,11 @@ tests = [
   # {listeners: 10, msgtypes: 20, resources: 1, messages: 500000}
   # {listeners: 10, msgtypes: 30, resources: 1, messages: 500000}
   # {listeners: 10, msgtypes: 40, resources: 1, messages: 500000}
-  
+
   {listeners: 100, msgtypes: 1, resources: 1, messages: 100000}
   {listeners: 100, msgtypes: 10, resources: 1, messages: 100000}
   {listeners: 100, msgtypes: 100, resources: 1, messages: 100000}
-  
+
   {listeners: 100, msgtypes: 1, resources: 10, messages: 100000}
   {listeners: 100, msgtypes: 1, resources: 100, messages: 100000}
 
@@ -87,28 +87,28 @@ fs.readFile '/dev/stdin', ->
 #   "on two values":
 #     "when the values are unequal":
 #       topic: -> onlyChanges 1, 2
-      
+
 #       "returns the second value": (v) -> assert.equal v, 2
 
 #     "when the values are equal":
 #       topic: -> onlyChanges 5, 5
-      
+
 #       "returns null": (v) -> assert.strictEqual v, null
 
 #   "on two arrays":
 #     "when the second is longer than the first":
 #       topic: -> onlyChanges [1,2,3,4], [1,2,3,4,5,6]
-    
+
 #       "returns the second value": (v) -> assert.deepEqual v, [1,2,3,4,5,6]
 
 #     "when the second is shorter than the first":
 #       topic: -> onlyChanges [1,2,3,4], [1,2]
-    
+
 #       "returns the second value": (v) -> assert.deepEqual v, [1,2]
 
 #     "when the second is equal to the first":
 #       topic: -> onlyChanges [1,2,3,4], [1,2,3,4]
-    
+
 #       "returns null": (v) -> assert.strictEqual v, null
 
 #   "on two objects":
@@ -119,17 +119,17 @@ fs.readFile '/dev/stdin', ->
 
 #     "when there are the same keys with changed values":
 #       topic: -> onlyChanges {a:1, b:2}, {a:1, b:3}
-    
+
 #       "returns the keys with changed values": (v) -> assert.deepEqual v, {b:3}
 
 #     "when there are the same keys with the same values":
 #       topic: -> onlyChanges {a:1, b:2}, {a:1, b:2}
-    
+
 #       "returns null": (v) -> assert.strictEqual v, null
 
 #     "when keys are removed in the new object":
 #       topic: -> onlyChanges {a:1, b:2}, {a:1}
-    
+
 #       "returns null": (v) -> assert.strictEqual v, null
 
 #   "on an object containing objects":
