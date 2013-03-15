@@ -96,3 +96,17 @@ describe "A vclock"
     "Or new": (v) ->
       assert.ok !v.conflicts ['a'], sam: 1, dave: 2, bill: 3, jim: 4, internet: 1
 
+
+describe "A nested vclock"
+  "When a higher scoped vclock is incremented and then a lower scoped vclock is incremented":
+    topic: ->
+      v = new Vclock {name: "name"}
+      v.inc ['a']
+      v.inc ['a', 'b']
+      v
+
+    "The higher scoped vclock should be incremented twice": (v) ->
+      assert.equal v.get(['a']).name, 2
+
+    "The lower scoped vclock should be equal to the higher": (v) ->
+      assert.equal v.get(['a', 'b']).name, 2
