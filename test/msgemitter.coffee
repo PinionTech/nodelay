@@ -20,7 +20,7 @@ t = (fn) ->
     fn.apply this, args
     return
 
-describe "A msg emitter"
+describe "A msg emitter",
   "is created with new MsgEmitter()":
     topic: -> new MsgEmitter
 

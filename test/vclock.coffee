@@ -21,92 +21,76 @@ t = (fn) ->
 
 {onlyChanges, snapshotMatch} = resource
 
-describe "A vclock"
+describe "A vclock",
   "is created with vclock(node)":
     topic: -> new Vclock {name: "name"}
 
     "which returns an object": (s) -> assert.isObject s
 
-describe "A vclock"
+describe "A vclock",
   "When incremented":
     topic: ->
       v = new Vclock {name: "name"}
-      v.inc ['a']
+      v.inc()
       v
 
     "increments the vector of our node": (v) ->
-      assert.equal v.vclocks.a.name, 1
+      assert.equal v.get('name'), 1
 
   "When updated":
     topic: ->
       v = new Vclock {name: "name"}
-      v.inc ['a']
-      v.update ['a'], dave: 1, bill: 2, jim: 1
-      v.update ['a'], bill: 1
-      v.update ['a'], jim: 2
+      v.inc()
+      v.update dave: 1, bill: 2, jim: 1
+      v.update bill: 1
+      v.update jim: 2
       v
 
     "for new nodes, just inserts their version": (v) ->
-      assert.equal v.vclocks.a.dave, 1
+      assert.equal v.get('dave'), 1
 
     "for old nodes, picks the new version if it's higher": (v) ->
-      assert.equal v.vclocks.a.jim, 2
+      assert.equal v.get('jim'), 2
 
     "for old nodes, ignores the new version if it's lower": (v) ->
-      assert.equal v.vclocks.a.bill, 2
+      assert.equal v.get('bill'), 2
 
     "and otherwise doesn't change any versions": (v) ->
-      assert.equal v.vclocks.a.name, 1
+      assert.equal v.get('name'), 1
 
 
   "When a node is removed":
     topic: ->
       v = new Vclock {name: "name"}
-      v.inc ['a']
-      v.update ['a'], dave: 1
-      v.update ['b'], dave: 1
+      v.inc()
+      v.update dave: 1
       v.remove 'dave'
       v
 
-    "Its versions are removed from every vector": (v) ->
-      assert.equal v.vclocks.a.dave, undefined
-      assert.equal v.vclocks.b.dave, undefined
+    "Its version is removed from the vector": (v) ->
+      assert.equal v.get('dave'), undefined
 
     "But other nodes are left intact": (v) ->
-      assert.equal v.vclocks.a.name, 1
+      assert.equal v.get('name'), 1
 
   "An update conflicts":
     topic: ->
       v = new Vclock {name: "name"}
-      v.update ['a'], sam: 1, dave: 2, bill: 3, jim: 4
+      v.update sam: 1, dave: 2, bill: 3, jim: 4
       v
 
     "If it does not include a defined vector": (v) ->
-      assert.ok v.conflicts ['a'], sam: 2
+      assert.ok v.conflicts sam: 2
 
     "If it includes all existing vectors but with a lower version": (v) ->
-      assert.ok v.conflicts ['a'], sam: 1, dave: 2, bill: 3, jim: 3
+      assert.ok v.conflicts sam: 1, dave: 2, bill: 3, jim: 3
 
     "Unless vectors are equal": (v) ->
-      assert.ok !v.conflicts ['a'], sam: 1, dave: 2, bill: 3, jim: 4
+      assert.ok !v.conflicts sam: 1, dave: 2, bill: 3, jim: 4
 
     "Or greater": (v) ->
-      assert.ok !v.conflicts ['a'], sam: 3, dave: 2, bill: 3, jim: 5
+      assert.ok !v.conflicts sam: 3, dave: 2, bill: 3, jim: 5
 
     "Or new": (v) ->
-      assert.ok !v.conflicts ['a'], sam: 1, dave: 2, bill: 3, jim: 4, internet: 1
+      assert.ok !v.conflicts sam: 1, dave: 2, bill: 3, jim: 4, internet: 1
 
-
-describe "A nested vclock"
-  "When a higher scoped vclock is incremented and then a lower scoped vclock is incremented":
-    topic: ->
-      v = new Vclock {name: "name"}
-      v.inc ['a']
-      v.inc ['a', 'b']
-      v
-
-    "The higher scoped vclock should be incremented twice": (v) ->
-      assert.equal v.get(['a']).name, 2
-
-    "The lower scoped vclock should be equal to the higher": (v) ->
-      assert.equal v.get(['a', 'b']).name, 2

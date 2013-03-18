@@ -32,8 +32,6 @@ onlyChanges = (older, newer) ->
 
   if changed then obj else null
 
-
-
 deepMerge = (dst, src) ->
   # Can't merge different-length arrays, but we zero-length it so we preserve the reference
   dst.length = 0 if dst instanceof Array and src instanceof Array and dst.length != src.length
@@ -56,6 +54,27 @@ deepMerge = (dst, src) ->
         dst[k] = srcv
     else
       dst[k] = srcv
+  return
+
+deepDelete = (dst, src) ->
+  return unless src
+  for k, dstv of dst
+    srcv = src[k]
+    if srcv is null
+      delete dst[k]
+    else if typeof dstv is 'object' and typeof srcv is 'object'
+
+      if (dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length
+        deepDelete dstv, srcv
+
+      else if (dstv not instanceof Array) and (srcv not instanceof Array)
+        deepDelete dstv, srcv
+
+      else
+        delete dst[k]
+    else if srcv isnt undefined
+      delete dst[k]
+  return
 
 clobber = (dst, src) ->
   delete dst[k] for k, v of dst
@@ -66,37 +85,25 @@ matches = MsgEmitter.matches
 
 class Vclock
   constructor: (@node) ->
-    @vclocks = {}
+    @clock = {}
 
-  get: (path) ->
-    if val = @vclocks[path.join '\x1f']
-      return val
-    else if path.length > 0
-      return @at path.slice 0, -1
-    else
-      return null
+  get: (node) -> @clock[node]
 
-  inc: (path) ->
+  inc: ->
     myname = if @node.name instanceof Array then @node.name.join '\x1f' else @node.name
-    clock = @vclocks[path.join '\x1f'] ?= {}
-    clock[myname] ||= 0
-    clock[myname]++
+    @clock[myname] ||= 0
+    @clock[myname]++
 
-  update: (path, clocks) ->
-    clock = @vclocks[path.join '\x1f'] ?= {}
+  update: (clocks) ->
     for name, ver of clocks
-      clock[name] = Math.max(clock[name] or 0, ver)
+      @clock[name] = Math.max(@clock[name] or 0, ver)
 
   remove: (name) ->
     name = name.join '\x1f' if name instanceof Array
-    for path, clock of @vclocks
-      delete clock[name]
+    delete @clock[name]
 
-  conflicts: (path, newclock) ->
-    oldclock = @get path
-    return false if !oldclock
-
-    for name, ver of oldclock
+  conflicts: (newclock) ->
+    for name, ver of @clock
       return true if !newclock[name]? or newclock[name] < ver
 
     return false
@@ -128,18 +135,39 @@ class Resource
 
     new Resource @node, @path.concat(path), cur
 
-  merge: (data, merge="simple") ->
+  merge: (data, source, clock) ->
     # This doesn't deal properly with simple values (ie can't merge numbers or bools if that's the entire contents of the resource)
     # We could probably do this by ascending one level up the tree and replacing the data
     # But that sounds hard and I don't need the functionality for anything
-    switch merge
-      when "simple" then deepMerge @data, data
-      when "clobber" then clobber @data, data
-      else console.warn "Unknown merge type", merge
 
-  update: (data, merge) ->
-    @sendUpdate data, merge
-    @merge data, merge
+    if source
+      #console.log "got merge with source", source, "and vclock", clock
+      source = source.join('\x1f') if source instanceof Array
+      bynode = @node.bynode[source] ?= new Resource @node, [], {}
+      deepMerge bynode.sub(@path).data, data
+
+      # This is so dumb it makes my face hurt, but I think it works
+      if @node.vclock.conflicts clock
+        unconflictingdata = JSON.parse JSON.stringify data
+        for name, noderes of @node.bynode when !clock[name] or clock[name] < @node.vclock.get(name)
+          nodedata = noderes.at(@path)?.data
+          continue unless data
+          deepDelete unconflictingdata, nodedata
+
+        #console.log "unconflictingdata is", unconflictingdata
+
+        deepMerge @data, unconflictingdata
+      else
+        deepMerge @data, data
+
+      @node.vclock.update clock
+
+    else
+      deepMerge @data, data
+
+  update: (data) ->
+    @sendUpdate data
+    @merge data, @node.name, @node.vclock.clock
 
   # This might need some serious optimisation
   snapshotMatch: (matcher, opts={}) ->
@@ -153,26 +181,22 @@ class Resource
 
   snapshot: (opts={}) ->
     opts.scope = 'link'
-    #console.log "sending snapshot with data", @data
-    @sendUpdate @data, "snapshot", opts
+    opts.snapshot = true
+    #console.log "ssending snapshot with data", @data
+    @sendUpdate @data, opts
 
-  sendUpdate: (data, merge="simple", opts) ->
+  sendUpdate: (data, opts={}) ->
+    @node.vclock.inc()
+
     msg = {}
     msg[k] = v for k, v of opts
     msg.type = "resource update"
-    msg.merge = merge if merge
+    msg.vclock = @node.vclock.clock
 
-    switch merge
-      when "simple" then msg.data = onlyChanges @data, data
-      when "clobber" then msg.data = data
-      when "snapshot"
-        msg.data = data
-        msg.merge = "simple"
-      else
-        console.warn "Unknown merge type", merge
-        msg.data = data
-
-    #console.log @node.name, "Update message", msg
+    if opts.snapshot
+      msg.data = data
+    else
+      msg.data = onlyChanges @data, data
 
     return if !msg.data
 
@@ -210,14 +234,16 @@ class Resource
      break unless path[i] == component
     path.slice(i)
 
-  handleResourceUpdate: ({resource, merge, data}) =>
+  handleResourceUpdate: ({resource, data, from, vclock}) =>
     #console.log @node.name, "got resource update for", resource, data
+    #console.log "from", from, "vclock", vclock unless from and vclock
+    return unless from and vclock
     resource ||= []
     path = @scopePath resource
     res = @sub path
-    res.merge data, merge
+    res.merge data, from, vclock
 
-    scopedData = if merge is 'clobber' then res.data else data
+    scopedData = data
     for p in path.slice().reverse()
       oldData = scopedData
       scopedData = {}
@@ -226,7 +252,7 @@ class Resource
     @updateCB? this, scopedData
     res
 
-  handleUpReq: ({resource, merge, data, scope, from}) =>
+  handleUpReq: ({resource, data, scope, from}) =>
     res = @at @scopePath resource
     opts = {}
     opts.scope = 'link' if scope is 'link'
@@ -245,7 +271,7 @@ class Selector
     @matchedResources = {}
     @matchers = []
 
-  handleMatchUpdate: ({resource, merge, data}) =>
+  handleMatchUpdate: ({resource, data}) =>
     resource = [resource] if typeof resource is 'string'
     resource ||= []
     strForm = resource.join '\x1f'
@@ -254,7 +280,7 @@ class Selector
       res = @node.resources.sub resource
       res.watch(@updateCB)
       #res.send type: "resource update request", scope: 'link'
-      res.handleResourceUpdate {resource, merge, data}
+      res.handleResourceUpdate {resource, data}
 
       @matchedResources[strForm] = res
 

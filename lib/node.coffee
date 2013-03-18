@@ -35,7 +35,7 @@ class Parent extends EventEmitter
 
       # This should be in Resource via a listener or such
       for name, data of @node.resources.data
-        @send type: "resource update", resource: name, data: data
+        @send type: "resource update", resource: name, data: data, vclock: @node.vclock.clock
 
       ping = true
       clearInterval @pingInterval
@@ -138,6 +138,8 @@ class Children extends MsgEmitter
 
         if client.name
           delete @node.stats.by_node[client.name]
+          delete @node.bynode[client.name]
+          @node.vclock.remove client.name
         else
           @node.stats.by_node.anonymous.listeners -= client.nodelay_listeners.length
 
@@ -210,7 +212,7 @@ class Children extends MsgEmitter
         client.send JSON.stringify rmsg
         delete rmsg.tag
 
-      console.log client.name, "listening for", msg.data
+      #console.log client.name, "listening for", msg.data
       @node.stats.by_node[client.name or "anonymous"].listeners++
       @node.stats.listeners++
       @outEmitter.on msg.data, cb
@@ -241,6 +243,7 @@ class Node
     @name = name or Math.random().toFixed(10).slice(2)
 
     @vclock = new Resource.Vclock this
+    @bynode = {}
     @resources = new Resource this, [], {}
 
   connect: (host, port=44445, cb) ->
