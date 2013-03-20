@@ -16,12 +16,13 @@
     "coffee-script": "~1.4.0",
     "ws": "*",
     "assert": "*",
-    "fs-ext": "~0.2.3",
+    "fs-ext": "git://github.com/sgentle/node-fs-ext.git",
     "request": "~2.12.0",
-    "toobusy": "~0.2.2"
+    "toobusy": "~0.2.3"
   },
   "devDependencies": {
-    "vows": "*"
+    "vows": "*",
+    "memwatch": "~0.2.2"
   },
   "licenses": {
     "type": "MIT",
