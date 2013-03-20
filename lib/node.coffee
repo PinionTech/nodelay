@@ -5,6 +5,7 @@ _ = require 'underscore'
 
 Resource = require './resource'
 MsgEmitter = require './msgemitter'
+ObjClock = require './objclock'
 
 HASH_ALG = 'sha256'
 
@@ -35,7 +36,7 @@ class Parent extends EventEmitter
 
       # This should be in Resource via a listener or such
       for name, data of @node.resources.data
-        @send type: "resource update", resource: name, data: data, vclock: @node.vclock.clock
+        @send type: "resource update", resource: name, data: data, vclock: @node.objclock.clock
 
       ping = true
       clearInterval @pingInterval
@@ -138,8 +139,16 @@ class Children extends MsgEmitter
 
         if client.name
           delete @node.stats.by_node[client.name]
-          delete @node.bynode[client.name]
-          @node.vclock.remove client.name
+
+          # XXX This should go somewhere else - probably within resource via an event listener
+          rem = []
+          for clock, i in @node.objclock.clocks
+            rem.push i if clock.source is client.name
+          for i in rem
+            @node.objclock.clocks.splice(i, 1)
+
+          #delete @node.bynode[client.name]
+          #@node.vclock.remove client.name
         else
           @node.stats.by_node.anonymous.listeners -= client.nodelay_listeners.length
 
@@ -242,8 +251,7 @@ class Node
 
     @name = name or Math.random().toFixed(10).slice(2)
 
-    @vclock = new Resource.Vclock this
-    @bynode = {}
+    @objclock = new ObjClock this
     @resources = new Resource this, [], {}
 
   connect: (host, port=44445, cb) ->

@@ -43,6 +43,7 @@ class NodelayMonitor
     @updateByNode()
     @updateUsage()
     @updateLag()
+    @updateVClock()
     @flush()
 
   updateLag: ->
@@ -86,5 +87,7 @@ class NodelayMonitor
         update[rate+"_rate"] = round3(diff(node[rate], @rates[ratename])) if @rates[ratename]
         @rates[ratename] = node[rate]
 
+  updateVClock: ->
+    @currentUpdate.vclock = @node.objclock.clock
 
 module.exports = NodelayMonitor

@@ -58,23 +58,28 @@ deepMerge = (dst, src) ->
 
 deepDelete = (dst, src) ->
   return unless src
+  emptied = true
   for k, dstv of dst
+
     srcv = src[k]
     if srcv is null
       delete dst[k]
     else if typeof dstv is 'object' and typeof srcv is 'object'
-
-      if (dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length
-        deepDelete dstv, srcv
-
-      else if (dstv not instanceof Array) and (srcv not instanceof Array)
-        deepDelete dstv, srcv
-
+      if ((dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length) or
+        ((dstv not instanceof Array) and (srcv not instanceof Array))
+          subemptied = deepDelete dstv, srcv
+          if subemptied
+            delete dst[k]
+          else
+            emptied = false
       else
         delete dst[k]
     else if srcv isnt undefined
       delete dst[k]
-  return
+    else
+      emptied = false
+
+  return emptied
 
 clobber = (dst, src) ->
   delete dst[k] for k, v of dst
@@ -82,32 +87,6 @@ clobber = (dst, src) ->
 
 
 matches = MsgEmitter.matches
-
-class Vclock
-  constructor: (@node) ->
-    @clock = {}
-
-  get: (node) -> @clock[node]
-
-  inc: ->
-    myname = if @node.name instanceof Array then @node.name.join '\x1f' else @node.name
-    @clock[myname] ||= 0
-    @clock[myname]++
-
-  update: (clocks) ->
-    for name, ver of clocks
-      @clock[name] = Math.max(@clock[name] or 0, ver)
-
-  remove: (name) ->
-    name = name.join '\x1f' if name instanceof Array
-    delete @clock[name]
-
-  conflicts: (newclock) ->
-    for name, ver of @clock
-      return true if !newclock[name]? or newclock[name] < ver
-
-    return false
-
 
 class Resource
   constructor: (@node, @path, @data) ->
@@ -135,39 +114,24 @@ class Resource
 
     new Resource @node, @path.concat(path), cur
 
-  merge: (data, source, clock) ->
+  merge: (data, clock, source) ->
     # This doesn't deal properly with simple values (ie can't merge numbers or bools if that's the entire contents of the resource)
     # We could probably do this by ascending one level up the tree and replacing the data
     # But that sounds hard and I don't need the functionality for anything
+    scopedData = @fullForm data
 
-    if source
-      #console.log "got merge with source", source, "and vclock", clock
+    newoc = @node.objclock.update scopedData, clock
+    if newoc
       source = source.join('\x1f') if source instanceof Array
-      bynode = @node.bynode[source] ?= new Resource @node, [], {}
-      deepMerge bynode.sub(@path).data, data
-
-      # This is so dumb it makes my face hurt, but I think it works
-      if @node.vclock.conflicts clock
-        unconflictingdata = JSON.parse JSON.stringify data
-        for name, noderes of @node.bynode when !clock[name] or clock[name] < @node.vclock.get(name)
-          nodedata = noderes.at(@path)?.data
-          continue unless data
-          deepDelete unconflictingdata, nodedata
-
-        #console.log "unconflictingdata is", unconflictingdata
-
-        deepMerge @data, unconflictingdata
-      else
-        deepMerge @data, data
-
-      @node.vclock.update clock
-
-    else
-      deepMerge @data, data
+      newoc.source = source if source
+      obj = @fromFullForm newoc.obj
+      deepMerge @data, obj
 
   update: (data) ->
+    name = @node.name.join?('\x1f') or @node.name
+    @node.objclock.inc name
     @sendUpdate data
-    @merge data, @node.name, @node.vclock.clock
+    @merge data, @node.objclock.clock, @node.name
 
   # This might need some serious optimisation
   snapshotMatch: (matcher, opts={}) ->
@@ -186,12 +150,10 @@ class Resource
     @sendUpdate @data, opts
 
   sendUpdate: (data, opts={}) ->
-    @node.vclock.inc()
-
     msg = {}
     msg[k] = v for k, v of opts
     msg.type = "resource update"
-    msg.vclock = @node.vclock.clock
+    msg.vclock = @node.objclock.clock
 
     if opts.snapshot
       msg.data = data
@@ -234,6 +196,21 @@ class Resource
      break unless path[i] == component
     path.slice(i)
 
+  fullForm: (data) ->
+    scopedData = data or @data
+    for p in @path.slice().reverse()
+      oldData = scopedData
+      scopedData = {}
+      scopedData[p] = oldData
+    scopedData
+
+  fromFullForm: (data) ->
+    cur = data
+    for comp in @path
+      cur = cur[comp]
+      return null unless cur?
+    cur
+
   handleResourceUpdate: ({resource, data, from, vclock}) =>
     #console.log @node.name, "got resource update for", resource, data
     #console.log "from", from, "vclock", vclock unless from and vclock
@@ -241,7 +218,7 @@ class Resource
     resource ||= []
     path = @scopePath resource
     res = @sub path
-    res.merge data, from, vclock
+    res.merge data, vclock, from
 
     scopedData = data
     for p in path.slice().reverse()
@@ -296,6 +273,6 @@ class Selector
     for path, res of @matchedResources
       cb res.path, res
 
-Resource[k] = v for k, v of {Selector, Vclock, onlyChanges, deepMerge, clobber, matches}
+Resource[k] = v for k, v of {Selector, onlyChanges, deepMerge, clobber, matches, deepDelete}
 
 module.exports = Resource
