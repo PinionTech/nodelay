@@ -118,6 +118,10 @@ class Resource
     # This doesn't deal properly with simple values (ie can't merge numbers or bools if that's the entire contents of the resource)
     # We could probably do this by ascending one level up the tree and replacing the data
     # But that sounds hard and I don't need the functionality for anything
+
+    # Oops
+    return deepMerge @data, data
+
     scopedData = @fullForm data
 
     newoc = @node.objclock.update scopedData, clock
