@@ -120,7 +120,7 @@ class Resource
     # But that sounds hard and I don't need the functionality for anything
 
     # Oops
-    return deepMerge @data, data
+    #return deepMerge @data, data
 
     scopedData = @fullForm data
 
@@ -141,7 +141,7 @@ class Resource
   snapshotMatch: (matcher, opts={}) ->
     if matches @data, matcher
       @snapshot opts
-
+   
     for name, resource of @data
       if typeof resource is 'object'
         sub = @at(name)
@@ -150,14 +150,20 @@ class Resource
   snapshot: (opts={}) ->
     opts.scope = 'link'
     opts.snapshot = true
-    #console.log "ssending snapshot with data", @data
-    @sendUpdate @data, opts
+    
+    #console.log "snapshotting", @path
+    for {obj, clock} in @node.objclock.clocks
+      update = @fromFullForm obj
+      if update
+        #console.log "scoped clock", clock, "update", update 
+        opts.vclock = clock
+        @sendUpdate update, opts
 
   sendUpdate: (data, opts={}) ->
     msg = {}
     msg[k] = v for k, v of opts
     msg.type = "resource update"
-    msg.vclock = @node.objclock.clock
+    msg.vclock ||= @node.objclock.clock
 
     if opts.snapshot
       msg.data = data
@@ -173,7 +179,10 @@ class Resource
   send: (type, data) ->
     msg = @node.buildMsg type, data
     msg.resource = @path
-    @node.send msg
+    if msg.parentonly
+      @node.parent.send msg
+    else
+      @node.send msg
 
   on: (selector, cb) ->
     resMatcher = {}

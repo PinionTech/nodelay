@@ -34,9 +34,11 @@ class Parent extends EventEmitter
       for tag, matcher of @matchers
         @send type: "listen", scope: "link", data: matcher, tag: tag
 
-      # This should be in Resource via a listener or such
-      for name, data of @node.resources.data
-        @send type: "resource update", resource: name, data: data, vclock: @node.objclock.clock
+      # Do we still need to loop or can we just send one update for the whole lot?
+      for name of @node.resources.data
+        res = @node.resources.at name
+        # Should be a better way of doing this. to: 'parent' or something?
+        res.snapshot parentonly: true
 
       ping = true
       clearInterval @pingInterval
