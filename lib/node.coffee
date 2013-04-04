@@ -143,11 +143,8 @@ class Children extends MsgEmitter
           delete @node.stats.by_node[client.name]
 
           # XXX This should go somewhere else - probably within resource via an event listener
-          rem = []
           for clock, i in @node.objclock.clocks
-            rem.push i if clock.source is client.name
-          for i in rem
-            @node.objclock.clocks.splice(i, 1)
+            clock.clock = {} if clock.source is client.name
 
           #delete @node.bynode[client.name]
           #@node.vclock.remove client.name
