@@ -57,6 +57,6 @@ class ObjClock
         @clockPrune newclock, clock
 
     @mergeClock newclock
-    return @addClock newobj, newclock
+    return @addClock (JSON.parse JSON.stringify newobj), newclock
 
 module.exports = ObjClock
