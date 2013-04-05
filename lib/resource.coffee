@@ -128,7 +128,7 @@ class Resource
     if newoc
       source = source.join('\x1f') if source instanceof Array
       newoc.source = source if source
-      obj = @fromFullForm newoc.obj
+      obj = @fromFullForm JSON.parse JSON.stringify newoc.obj
       deepMerge @data, obj
 
   update: (data) ->
