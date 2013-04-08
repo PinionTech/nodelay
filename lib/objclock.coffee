@@ -4,6 +4,7 @@ class ObjClock
   constructor: ->
     @clocks = []
     @clock = {}
+    @addClock {}, {}
 
   addClock: (obj, clock) ->
     val = {obj, clock}
@@ -11,7 +12,7 @@ class ObjClock
     val
 
   removeClock: (i) ->
-    @clocks.splice(i, 1)
+    @clocks.splice(i, 1) unless i is 0
 
   clockDominates: (oldc, newc) ->
     newer = false
