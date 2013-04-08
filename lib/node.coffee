@@ -277,7 +277,12 @@ class Node
     else
       msg = type
     msg.from ||= @name
-    msg.time = new Date().toISOString()
+
+    if !@time
+      @time = new Date().toISOString()
+      setTimeout (=> @time = null), 1000
+
+    msg.time = @time
 
     if msg.signed and @privkey
       signer = crypto.createSign HASH_ALG
