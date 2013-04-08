@@ -6,6 +6,7 @@ vows    = require 'vows'
 assert  = require 'assert'
 
 resource = require '../lib/resource'
+node = require '../lib/node'
 
 describe = (name, bat) -> vows.describe(name).addBatch(bat).export(module)
 exists = fs.existsSync or path.existsSync
@@ -20,14 +21,14 @@ t = (fn) ->
 
 {onlyChanges, deepMerge, snapshotMatch} = resource
 
-describe "A resource"
+describe "A resource",
   "is created with resource(node, path, args)":
     topic: -> new resource({}, [], {})
 
     "which returns an object": (s) -> assert.isObject s
 
 
-describe "onlyChanges"
+describe "onlyChanges",
   "on two values":
     "when the values are unequal":
       topic: -> onlyChanges 1, 2
@@ -122,7 +123,7 @@ inverseDeepMergeTest = (src, dst) -> ->
     #console.log "result of merging", src, "with", diff, "is", result
   assert.deepEqual result, dst
 
-describe "deepMerge"
+describe "deepMerge",
   "should be the inverse of onlyChanges":
     "on two arrays":
       "when the second is longer than the first": inverseDeepMergeTest([1,2,3,4], [1,2,3,4,5,6])
@@ -147,16 +148,37 @@ describe "deepMerge"
       "when the nested arrays have changes": inverseDeepMergeTest([[1,2,3],[4,5,6],[7,8,9]],[[1,1,3],[4,5,6],[7,8,9]])
       "when the nested arrays have no changes": inverseDeepMergeTest([[1,2,3],[4,5,6],[7,8,9]],[[1,2,3],[4,5,6],[7,8,9]])
 
-fakeResource = (data) -> ->
-      res = new resource(null, [], data)
-      res.updateCount = {}
-      res.node =
-        name: "test node"
-        buildMsg: (type, data) -> if typeof type is "string" then {type, data} else type
-        send: (msg) -> res.updateCount[msg.key] ?= 0; res.updateCount[msg.key]++
-      res
+  "should deal with nulls":
+    "In objects": ->
+      dst = {a:1, b:2, c:null}
+      deepMerge dst, {b:null, d:3}
+      assert.deepEqual dst, {a:1, c:null, d:3}
 
-describe "snapshotMatch"
+    "In nested objects": ->
+      dst = {a:1, b:{a:1, b:2}, c:null}
+      deepMerge dst, {b: {b:null, c:3}, c: {a:1, b:2}}
+      assert.deepEqual dst, {a:1, b: {a:1, c:3}, c: {a:1, b:2}}
+
+    "In arrays": ->
+      dst = [1, 2, null]
+      deepMerge dst, [1, 3, 3]
+      assert.deepEqual dst, [1, 3, 3]
+
+    "In nested arrays": ->
+      dst = [1, [1, null], null]
+      deepMerge dst, [2, [2, [3, 4]], [5, 6]]
+      assert.deepEqual dst, [2, [2, [3, 4]], [5, 6]]
+
+
+fakeResource = (data) -> ->
+  res = new resource(new node(), [], {})
+  res.merge data, {}
+  res.updateCount = {}
+  res.node.buildMsg = (type, data) -> if typeof type is "string" then {type, data} else type
+  res.node.send = (msg) -> res.updateCount[msg.key] ?= 0; res.updateCount[msg.key]++
+  res
+
+describe "snapshotMatch",
   "when called on a one-level deep resource":
     topic: fakeResource {a: 1, b: 2, c: 3}
 

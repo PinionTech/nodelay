@@ -47,7 +47,7 @@ deepMerge = (dst, src) ->
         deepMerge dstv, srcv
 
       # Merging two objects
-      else if (dstv not instanceof Array) and (srcv not instanceof Array)
+      else if dstv isnt null and (dstv not instanceof Array) and (srcv not instanceof Array)
         deepMerge dstv, srcv
 
       else
