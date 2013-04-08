@@ -221,7 +221,7 @@ class Children extends MsgEmitter
         delete rmsg.tag
 
       #console.log client.name, "listening for", msg.data
-      @node.stats.by_node[client.name or "anonymous"].listeners++
+      @node.stats.by_node[client.name or "anonymous"]?.listeners++
       @node.stats.listeners++
       @outEmitter.on msg.data, cb
       client.nodelay_listeners.push cb
