@@ -39,9 +39,10 @@ class ObjClock
     @clock[name] ?= 0
     @clock[name]++
 
-  update: (newobj, newclock) ->
+  update: (newobj, _newclock) ->
     newobj = JSON.parse JSON.stringify newobj
-    newclock = JSON.parse JSON.stringify newclock
+    newclock = {}
+    newclock[k] = v for k, v of _newclock
     #console.log "newobj", newobj, "with clock", newclock
     for {obj, clock}, i in @clocks.slice()
       if @clockDominates clock, newclock

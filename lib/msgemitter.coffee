@@ -6,13 +6,13 @@ msgMatches = (msg, match, resources) ->
     if typeof objv is 'object' and typeof matchv is 'object' and k isnt 'resource'
       return false unless matches objv, matchv
     else if k is 'resource'
-      #console.log "matching resource", objv, matchv, (typeof matchv), (not (matchv instanceof Array))
-      if typeof matchv is 'object' and not (matchv instanceof Array)
+      #console.log "matching resource", objv, matchv, (typeof matchv), (not Array.isArray(matchv))
+      if typeof matchv is 'object' and not Array.isArray(matchv)
         resource = resources?.at(msg.resource or [])
         return false unless resource
 
         return false unless matches resource.data, matchv
-      else if objv instanceof Array
+      else if Array.isArray(objv)
         return false unless matchArrayHead matchv, objv
       else
         return false

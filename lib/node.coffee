@@ -167,7 +167,7 @@ class Children extends MsgEmitter
       return
     @node.stats.in++
     #console.log "client name", client.name or "anonymous"
-    @node.stats.by_node[client.name or "anonymous"].in++
+    @node.stats.by_node[client.name or "anonymous"]?.in++
 
     if @node.auth and !client.authed and (msg.type isnt 'listen' or msg.scope isnt 'link')
       if msg.type is "auth" and msg.signed and @node.auth msg
@@ -194,7 +194,7 @@ class Children extends MsgEmitter
         resource = msg.data.resource
         from = msg.from
         sendUpdate = =>
-          if typeof resource is 'object' and resource not instanceof Array
+          if typeof resource is 'object' and !Array.isArray(resource)
             @node.resources.snapshotMatch resource, to: from
           else
             @node.resources.at(resource)?.snapshot to: from

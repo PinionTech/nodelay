@@ -87,7 +87,7 @@ class Nodelay extends EventEmitter
 
     if @scope
       @node.parent?.inFilter = (msg) =>
-        if typeof msg?.resource is 'object' and msg.resource instanceof Array
+        if typeof msg?.resource is 'object' and Array.isArray(msg.resource)
           for scope in @scope
             break unless msg.resource[0] == scope
             msg.resource.shift()
@@ -95,7 +95,7 @@ class Nodelay extends EventEmitter
 
       @node.parent?.outFilter = (msg) =>
         #console.log @node.name, "outfiltering with", @scope
-        if msg.resource or (msg.type is "listen" and msg.data.resource instanceof Array)
+        if msg.resource or (msg.type is "listen" and Array.isArray msg.data.resource)
           newmsg = {}
           newmsg[k] = v for k, v of msg
           msg = newmsg
@@ -105,7 +105,7 @@ class Nodelay extends EventEmitter
           else
             msg.resource = msg.resource.slice()
           msg.resource.unshift @scope...
-        if msg.type is "listen" and msg.data.resource instanceof Array
+        if msg.type is "listen" and Array.isArray(msg.data.resource)
           newdata = {}
           newdata[k] = v for k, v of msg.data
           msg.data = newdata

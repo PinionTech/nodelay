@@ -6,11 +6,11 @@ jsondiffpatch = require 'jsondiffpatch'
 
 onlyChanges = (older, newer) ->
   # Too hard basket
-  return newer if (older instanceof Array or newer instanceof Array) and older.length != newer.length
+  return newer if (Array.isArray(older) or Array.isArray(newer)) and older.length != newer.length
 
   return (if newer == older then null else newer) if typeof older isnt 'object' or typeof newer isnt 'object' or !older or !newer
 
-  obj = if older instanceof Array then [] else {}
+  obj = if Array.isArray(older) then [] else {}
   changed = false
   for k of newer
     if typeof older[k] is 'object' and typeof newer[k] is 'object'
@@ -18,8 +18,8 @@ onlyChanges = (older, newer) ->
       if changes
         obj[k] = changes
         changed = true
-      else if older instanceof Array
-        if newer[k] instanceof Array
+      else if Array.isArray(older)
+        if Array.isArray(newer[k])
           obj[k] = newer[k]
         else
           obj[k] = {}
@@ -27,14 +27,14 @@ onlyChanges = (older, newer) ->
       if newer[k] != older[k]
         obj[k] = newer[k]
         changed = true
-      else if older instanceof Array
+      else if Array.isArray(older)
         obj[k] = newer[k]
 
   if changed then obj else null
 
 deepMerge = (dst, src) ->
   # Can't merge different-length arrays, but we zero-length it so we preserve the reference
-  dst.length = 0 if dst instanceof Array and src instanceof Array and dst.length != src.length
+  dst.length = 0 if Array.isArray(dst) and Array.isArray(src) and dst.length != src.length
 
   for k, srcv of src
     dstv = dst[k]
@@ -43,11 +43,11 @@ deepMerge = (dst, src) ->
     else if typeof dstv is 'object' and typeof srcv is 'object'
 
       # Merging two arrays
-      if (dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length
+      if Array.isArray(dstv) and Array.isArray(srcv) and dstv.length == srcv.length
         deepMerge dstv, srcv
 
       # Merging two objects
-      else if dstv isnt null and (dstv not instanceof Array) and (srcv not instanceof Array)
+      else if dstv isnt null and !Array.isArray(dstv) and !Array.isArray(srcv)
         deepMerge dstv, srcv
 
       else
@@ -65,8 +65,8 @@ deepDelete = (dst, src) ->
     if srcv is null
       delete dst[k]
     else if typeof dstv is 'object' and typeof srcv is 'object'
-      if ((dstv instanceof Array) and (srcv instanceof Array) and dstv.length == srcv.length) or
-        ((dstv not instanceof Array) and (srcv not instanceof Array))
+      if (Array.isArray(dstv) and Array.isArray(srcv) and dstv.length == srcv.length) or
+        (!Array.isArray(dstv) and !Array.isArray(srcv))
           subemptied = deepDelete dstv, srcv
           if subemptied
             delete dst[k]
@@ -126,7 +126,7 @@ class Resource
 
     newoc = @node.objclock.update scopedData, clock
     if newoc
-      source = source.join('\x1f') if source instanceof Array
+      source = source.join('\x1f') if Array.isArray source
       newoc.source = source if source
       obj = @fromFullForm JSON.parse JSON.stringify newoc.obj
       deepMerge @data, obj
@@ -141,7 +141,7 @@ class Resource
   snapshotMatch: (matcher, opts={}) ->
     if matches @data, matcher
       @snapshot opts
-   
+
     for name, resource of @data
       if typeof resource is 'object'
         sub = @at(name)
@@ -150,12 +150,12 @@ class Resource
   snapshot: (opts={}) ->
     opts.scope = 'link'
     opts.snapshot = true
-    
+
     #console.log "snapshotting", @path
     for {obj, clock} in @node.objclock.clocks
       update = @fromFullForm obj
       if update
-        #console.log "scoped clock", clock, "update", update 
+        #console.log "scoped clock", clock, "update", update
         opts.vclock = clock
         @sendUpdate update, opts
 
