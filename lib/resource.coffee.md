@@ -17,9 +17,10 @@ The Resource class has the following goals:
 * subset of the global object Emit events when data is updated
 
 
-
 Helper functions
 ----------------
+
+> At some point these should probably move to a separate library.
 
 **onlyChanges** returns a JSON object representing the values in `newer` that
 aren't already present in `older`. This is designed to provide a minimal object
@@ -121,10 +122,6 @@ subtrees of our resource as distinct units.
 
       return emptied
 
-    clobber = (dst, src) ->
-      delete dst[k] for k, v of dst
-      dst[k] = src[k] for k, v of src
-
 
     matches = MsgEmitter.matches
 
@@ -134,17 +131,16 @@ Resource class
 --------------
 
     class Resource
-      constructor: (@node, @path=[], @data={}, @versions=new ResourceVersions) ->
-
+      constructor: (@node, @path=[], @data={}, @versions=new Versions) ->
 
 
 We start with methods that make it easy to refer to an object at a particular
 location within our data. To do this we use the idea of a sub-resource. That is,
 a copy of this resource at a path within the resource. Depending on our access
-pattern, we use `.sub` or `.at`. They work the same way, but `.sub` creates
-empty objects as necessary to make a space for an object being merged in. `.at`,
-on the other hand, is designed for reading data and will return null if the path
-doesn't exist.
+pattern, we use **sub** or **at** They work the same way, but **sub** creates
+empty objects as necessary to make a space for an object being merged in.
+**at**, on the other hand, is designed for reading data and will return null if
+the path doesn't exist.
 
 Paths can be expressed either as varargs or an array.
 
@@ -156,92 +152,12 @@ Paths can be expressed either as varargs or an array.
 
 Next we have the fundamental data access methods.
 
-`.merge` is the real powerhouse of the class. It accepts an update (as in the
-kind we would receive in a `resource update` message) and a version to apply
-the update at.
+**merge** accepts an update (as in the kind we would receive in a `resource
+update` message) and a version to apply the update at. It passes off the real
+work to the Versions class.
 
       merge: (data, version) ->
 
-
-First we call out to ResourceVersions to
-
-
-
-
-
-
-
-Versions class
---------------
-
-**Versions** is designed to handle conflict resolution and multiple
-value management within the Resource. Conflicts in Nodelay aren't necessarily a
-bad thing. For example we use conflict handling to mediate between multiple
-nodes who (rightly) have different opinions about the state of a particular
-resource. They don't have to know how to resolve those differences. Instead,
-they allow the values to conflict and another node will resolve them into a
-reasonable single value.
-
-    class Versions
-
-The `Versions` class starts with a single root version and a list of heads. The
-root represents the complete state of data. Each version contains a number of
-child versions, each one being causally connected to its parents.
-
-The heads represent the current set of childless versions. That is, versions we
-expect to receive updates about.
-
-Recursively merging from the heads back to the root should give us all data
-within the system.
-
-      constructor: ->
-        @root = new Version()
-        @heads = [@root]
-        @data = {}
-
-Updates come in through the `update` function.
-
-      update: (data, clock) ->
-
-This function checks to see which versions the update will apply to (its
-parents). If we can't find any parents to apply to, the update applies at the
-root version
-
-        parents = version.canApply clock for version in heads
-        parents = [@root] if !@parents.length
-
-We create a new version to represent the new data we've received, then notify
-each parent that it has a new child.
-
-        ver = new Version(this, parents, data)
-        parent.addChild ver for parent in parents
-
-
-
-    class Version
-
-Versions start off as heads until they receive children with addChild.
-
-      constructor: (@versions, @parents=[], @data={}, @clock) ->
-        @isHead = true
-        @children = []
-        @cache = {}
-
-When we get a new child, remove ourselves from the head list if necessary,
-add the child in the appropriate position (as determined by clock ordering), and
-invalidate our data cache so that the new data will appear in the next refresh.
-
-      addChild: (child) ->
-        @isHead = false
-
-        i = @versions.heads.indexOf this
-        @versions.heads.splice i, 1 if i >= 0
-
-        @cache = {}
-
-To update our data,
-
-      updateData: ->
-        for child in @children
-          @data.merge
+        @versions.update data, version
+        @dirty = true
 
