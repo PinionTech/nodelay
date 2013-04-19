@@ -120,7 +120,7 @@ class Resource
     # But that sounds hard and I don't need the functionality for anything
 
     # Oops
-    #return deepMerge @data, data
+    return deepMerge @data, data
 
     scopedData = @fullForm data
 
@@ -151,6 +151,9 @@ class Resource
     opts.scope = 'link'
     opts.snapshot = true
 
+
+    @sendUpdate @data, opts
+    return
     #console.log "snapshotting", @path
     for {obj, clock} in @node.objclock.clocks
       update = @fromFullForm obj
