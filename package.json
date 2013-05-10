@@ -29,7 +29,6 @@
     "url": "http://www.opensource.org/licenses/MIT"
   },
   "scripts": {
-    "test": "cake test",
-    "build": "cake build"
+    "test": "vows --spec test/*.coffee"
   }
 }
