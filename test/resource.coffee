@@ -174,8 +174,12 @@ fakeResource = (data) -> ->
   res = new resource(new node(), [], {})
   res.merge data, {}
   res.updateCount = {}
+  res.updates = {}
   res.node.buildMsg = (type, data) -> if typeof type is "string" then {type, data} else type
-  res.node.send = (msg) -> res.updateCount[msg.key] ?= 0; res.updateCount[msg.key]++
+  res.node.send = (msg) ->
+    res.updateCount[msg.key] ?= 0
+    res.updateCount[msg.key]++
+    res.updates[msg.key] = msg
   res
 
 describe "snapshotMatch",
@@ -214,3 +218,10 @@ describe "snapshotMatch",
       topic: (r) -> r.snapshotMatch {d: 1}, {key: 4}; r
 
       "does not snapshot": (r) -> assert.equal r.updateCount[4], undefined
+
+describe "snapshot",
+  "When you have one level deep data in a resource":
+    topic: fakeResource {a: 1, b: 2, c: 3}
+    "and you ask for a snapshot":
+      topic: (r) -> r.snapshot(key: 1); r
+      "returns the correct resource": (r) -> assert.deepEqual r.updates[1].data, {a: 1, b: 2, c: 3}
