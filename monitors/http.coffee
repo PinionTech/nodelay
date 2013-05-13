@@ -18,12 +18,12 @@ setInterval ->
     opts = url.parse data.url
     opts.agent = false
     up = (data) ->
-      data.latency ?= new Date() - d
+      data.latency = new Date() - d if data.latency is undefined
       data.up = true
       res.update data
       res.send "up" if !wasUp
     down = (data) ->
-      data.latency ?= new Date() - d
+      data.latency = new Date() - d if data.latency is undefined
       data.up = false
       res.update data
       res.send "down" if wasUp
@@ -37,9 +37,11 @@ setInterval ->
         down {
           statusCode: resp.statusCode
         }
+      req.destroy()
     req.on 'error', (err) ->
       down { statusCode: null, latency: null }
       res.send "http error", err.message
+      req.destroy()
 
 , CHECK_INTERVAL
 
