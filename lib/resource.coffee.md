@@ -12,9 +12,10 @@ primitives, and null.
 
 The Resource class has the following goals:
 
-* Make modifications at a particular path in the object Provide merging and
-* conflict resolution of multiple updates Allow querying to select an arbitrary
-* subset of the global object Emit events when data is updated
+* Make modifications at a particular path in the object
+* Provide merging and conflict resolution of multiple updates
+* Allow querying to select an arbitrary subset of the global object
+* Emit events when data is updated
 
 
 Helper functions
@@ -32,7 +33,7 @@ there's no way to represent moving or copying of data, so those are expensive
 operations.
 
 The main advantage of this approach is simplicity. A more complicated patch
-system would need more a complicated conflict resolution mechanism (ie you would
+system would need a more complicated conflict resolution mechanism (ie you would
 need to provide some kind of commutative move operation otherwise one move would
 invalidate another). Maybe that's a good idea but it would add a lot of
 complexity and I don't really move things very often.

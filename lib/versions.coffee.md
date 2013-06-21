@@ -17,23 +17,28 @@ first version on the a branch and the second version on the b branch".
 For our purposes, these branches always correspond to nodes, so we could
 simplify that to mean "**a**'s first version and **b**'s second version". We can
 then use *clock ordering* to figure out which versions are causally connected to
-others, like so: * Clocks `{a:1}` and `{b:2}` are causally unconnected. * Clock
-`{a:2}` is derived from `{a:1}`. * A clock containing `{a:1, b:2}` is derived
-from both `{a:1}` and `{b:2}`
+others, like so:
 
-To resolve a conflict, between **a** (at version `{a:1}`) and **b** (at version
+* Clocks `{a:1}` and `{b:2}` are causally unconnected.
+* Clock `{a:2}` is derived from `{a:1}`.
+* A clock containing `{a:1, b:2}` is derived from both `{a:1}` and `{b:2}`
+
+To resolve a conflict between **a** (at version `{a:1}`) and **b** (at version
 `{b:2}`), a resolving node (say, **r**) could send data with a clock like `{a:1,
 b:2, r:1}`. This would supersede **a**'s version 1 and **b**'s version 2.
 
 Alternatively, a or b could be clever and perform conflict resolution
 themselves, so **a** could send an update with `{a:2, b:2}`, which would
-indicate that its update has taken into account the data from **b* at `{b:2}`
+indicate that its update has taken into account the data from **b** at `{b:2}`
 and intends to override it.
 
 The main way our implementation differs from traditional version vectors or
 vector clocks is that we don't treat updates as all-or-nothing. Each value in
 the JSON Object is considered to be first-class, so an update can partially
 override another update and be partially overridden in turn by other updates.
+
+    {EventEmitter} = require('events')
+    {deepMerge, deepDelete} = require('./resource')
 
 Versions class
 --------------
@@ -80,8 +85,8 @@ can keep our heads up to date.
 Versions start off as heads, they lose head status if they acquire children or
 are collapsed, they gain head status if all their children are removed. In
 reality, we don't need to remove the head if a Version acquires children,
-because they will just overwrite it However, in the collapsing case we do
-because we may have collapsed the only remaining head in a branch.
+because the children will just overwrite it. However, in the collapsing case
+we do because we may have collapsed the only remaining head in a branch.
 
         @addHead thisver
 
@@ -192,6 +197,7 @@ returns a new object, and **mergeData** will update an existing object.
       mergeData: (data) ->
         deepMerge data, @data
         child.mergeData data for child in @children by -1
+        data
 
 **highestAttachPoint** is our helper to find where a new version can attach on the tree. We take
 which branch we want to traverse and the version we need to find. If the version
@@ -207,3 +213,6 @@ parent we have along that branch.
               return parent.highestAttachPoint version, branch
             else
               return null
+
+
+    module.exports = {Version, Versions}
