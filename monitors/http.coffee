@@ -12,6 +12,7 @@ selector = node.resource url: '*'
 setInterval ->
   selector.each (path, res) ->
     data = res.data
+    return unless data.url.match /^http:\/\//
 
     d = new Date()
     wasUp = data.up
