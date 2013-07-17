@@ -152,8 +152,8 @@ least one that is greater or new.
         greater = false
         for node, otherVer of other.clock
           ver = @clock[node]
-          return false if !ver? or ver < otherver
-          greater = true if ver > otherver
+          return false if !ver? or ver < otherVer
+          greater = true if ver > otherVer
 
         return true if greater
 
