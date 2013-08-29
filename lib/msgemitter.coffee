@@ -114,7 +114,7 @@ class MsgEmitter
 
     matchset.add cb
 
-    return
+    return cb
 
   addIndices: (matchset) ->
     matcher = matchset.matcher
@@ -128,7 +128,7 @@ class MsgEmitter
           #console.log "adding #{attrib}=#{val} index for", matcher
           @addIndex attrib, val, matchset
           indexed = true
-          break;
+          break
       if !indexed
         @unindexed.add matchset
 

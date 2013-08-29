@@ -250,10 +250,16 @@ describe "A msg emitter",
   "when listening for resources as objects":
     topic: ->
       m = new MsgEmitter()
-      m.node = {resources: new Resource {name: "test node"}, [], {resource1: {asdf: 1234}, resource2: {asdf: 5678}, resource3: {subresource1: {asdf: 3456}}}}
+      m.node = {resources: new Resource {name: "test node"}, [], {
+        resource1: {asdf: 1234}
+        resource2: {asdf: 5678}
+        resource3: {subresource1: {asdf: 3456}}
+        resource4: {ghij: 1234, subresource1: {ghij: 1234}}
+      }}
       callCount = (msg) => m.calledCount[msg.key] ||= 0; m.calledCount[msg.key]++
       m.on {type: "hello", resource: {asdf: 1234}}, callCount
       m.on {type: "hello", resource: {asdf: 3456}}, callCount
+      m.on {type: "hello", resource: {ghij: 1234}}, callCount
       m.on {type: "world"}, callCount
       m.on {resource: {asdf: 5678}}, callCount
       m.calledCount = {}
@@ -294,3 +300,9 @@ describe "A msg emitter",
       "the callback does not fire": (m) ->
         assert.equal m.calledCount[5], undefined
 
+    "and a matching messages is fired on a matching subresource where the parent resource also matches":
+      topic: (m) ->
+        m.emit {type: "hello", resource: ["resource4", "subresource1"], key: 6}
+        m
+      "the callback does not fire": (m) ->
+        assert.equal m.calledCount[4], undefined

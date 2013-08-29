@@ -110,6 +110,7 @@ class Parent extends EventEmitter
     @matchers[tag] = matcher
     @send type: "listen", scope: "link", data: matcher, tag: tag
 
+  removeListener: ->
   #TODO: removeListener, removeAllListeners (should invalidate @matchers)
 
 
@@ -325,6 +326,11 @@ class Node
   on: (matcher, cb) =>
     @parent?.on matcher, cb
     @children?.on matcher, cb
+    cb
+
+  removeListener: (matcher, cb) =>
+    @parent?.removeListener cb
+    @children?.removeListener cb
 
   resource: (selector, cb) ->
     selector = [selector] if typeof selector is 'string'
