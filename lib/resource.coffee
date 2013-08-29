@@ -254,7 +254,7 @@ class Resource
 
 
 class Selector
-  constructor: (@node, selector, @updateCB) ->
+  constructor: (@node, @selector, @updateCB) ->
     matcher = {type: "resource update", resource: selector}
 
     #console.log @node.name, "listening for", matcher
@@ -277,13 +277,19 @@ class Selector
 
       @matchedResources[strForm] = res
 
-      for {matcher, cb} in @matchers
-        res.on matcher, cb
-
   on: (matcher, cb) ->
-    @matchers.push {matcher, cb}
-    for path, res of @matchedResources
-      res.on matcher, cb
+    resMatcher = {}
+    if typeof matcher is 'object'
+      resMatcher[k] = v for k, v of matcher
+    else if typeof matcher is 'string'
+      resMatcher.type = matcher
+    else
+      console.warn "Invalid matcher", matcher
+
+    resMatcher.resource = @selector
+
+    @node.on resMatcher, (msg) =>
+      cb @node.resources.sub(msg.resource), msg
 
   each: (cb) ->
     for path, res of @matchedResources
