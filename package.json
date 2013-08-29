@@ -2,7 +2,7 @@
   "author": "Sam Gentle <sam@pinion.gg>",
   "name": "nodelay",
   "description": "Devops for Node",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "engines": {
     "node": ">=v0.4.9"
   },
