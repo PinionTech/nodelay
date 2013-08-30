@@ -21,9 +21,9 @@ class NodelayMonitor
       auth: !!@node.auth
       bind: @nodelay.bind
       port: @nodelay.port
-      controllers: @nodelay.controllers
-      monitors: @nodelay.monitors
-      workers: @nodelay.workers
+      controllers: [c for c of @nodelay.controllers]
+      monitors: [m for m of @nodelay.monitors]
+      workers: [w for w of @nodelay.workers]
       pid: process.pid
     }
 

@@ -1,4 +1,5 @@
 EventEmitter = require('events').EventEmitter
+uidNumber = require 'uid-number'
 {fork} = require 'child_process'
 path = require 'path'
 fs = require 'fs'
@@ -8,18 +9,29 @@ nodelay_monitor = require './lib/nodelay_monitor'
 
 children = []
 
-forkCoffee = (script, args, options={}) ->
-  coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
-  [oldExecPath, process.execPath] = [process.execPath, coffeePath]
-  if not fs.existsSync script
-    script = path.join __dirname, script
-    options.cwd ?= __dirname
 
-  child = fork script, args, options
-  child.on 'exit', (code, signal) -> handleRestart code, signal, script, args, options
-  children.push child
-  process.execPath = oldExecPath
-  child
+
+forkCoffee = (script, args, options={}) ->
+  go = ->
+    #console.log "got forkCoffee", script, args, options
+    coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
+    [oldExecPath, process.execPath] = [process.execPath, coffeePath]
+    if not fs.existsSync script
+      script = path.join __dirname, script
+      options.cwd ?= __dirname
+
+    child = fork script, args, options
+    child.on 'exit', (code, signal) -> handleRestart code, signal, script, args, options
+    children.push child
+    process.execPath = oldExecPath
+    child
+
+  if options.user
+    uidNumber options.user, (err, uid) ->
+      options.uid = uid unless err
+      go()
+  else
+    go()
 
 process.on 'uncaughtException', (e) ->
   child.kill() for child in children
@@ -44,12 +56,20 @@ class Nodelay extends EventEmitter
     @name = name
 
     @resources = []
-    @controllers = []
-    @workers = []
-    @monitors = []
+    @controllers = {}
+    @workers = {}
+    @monitors = {}
 
     @proxy = {in: [], out:[]}
     @node = new Node name
+
+    processNodes = (type) => (nodes..., opts) =>
+      if typeof opts isnt 'object'
+        nodes.push opts
+        opts = {}
+
+      #console.log "processing node", node for node in nodes
+      this[type][node] = opts for node in nodes
 
     dsl =
       instance: this
@@ -61,9 +81,9 @@ class Nodelay extends EventEmitter
         @proxy.out.push proxy.out... if proxy.out
       on: @on
       scope: (@scope...) =>
-      workers: (@workers...) =>
-      monitors: (@monitors...) =>
-      controllers: (@controllers...) =>
+      workers: processNodes 'workers'
+      monitors: processNodes 'monitors'
+      controllers: processNodes 'controllers'
       privkey: (privkey) =>
         @privkey = fs.readFileSync(privkey)
         @node.privkey = @privkey
@@ -147,9 +167,10 @@ class Nodelay extends EventEmitter
       @node.parent.forward newmsg
 
     args = [@port]
-    forkCoffee "controllers/#{controller}.coffee", args for controller in @controllers
-    forkCoffee "workers/#{worker}.coffee", args for worker in @workers
-    forkCoffee "monitors/#{monitor}.coffee", args for monitor in @monitors
+
+    forkCoffee "controllers/#{controller}.coffee", args, options for controller, options of @controllers
+    forkCoffee "workers/#{worker}.coffee", args, options for worker, options of @workers
+    forkCoffee "monitors/#{monitor}.coffee", args, options for monitor, options of @monitors
 
     nodelay_monitor this
 
