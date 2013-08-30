@@ -1,5 +1,6 @@
 EventEmitter = require('events').EventEmitter
 uidNumber = require 'uid-number'
+coffee = require 'coffee-script'
 {fork} = require 'child_process'
 path = require 'path'
 fs = require 'fs'
@@ -99,6 +100,14 @@ class Nodelay extends EventEmitter
         @node.auth = (msg) -> true
       resource: (name, resource) =>
         @resources.push {name, resource}
+      include: (file) =>
+        if fs.statSync(file).isDirectory()
+          dsl.include path.join(file, _file) for _file in fs.readdirSync file when _file.match /\.coffee$/
+        else
+          nodelay = Nodelay
+          code = fs.readFileSync file, 'utf8'
+          fn = eval "(function(){" + coffee.compile(code, bare: true) + "})"
+          fn.call dsl
 
     init?.call dsl
 
