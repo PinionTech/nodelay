@@ -28,7 +28,10 @@ forkCoffee = (script, args, options={}) ->
 
   if options.user
     uidNumber options.user, (err, uid) ->
-      options.uid = uid unless err
+      if err
+        console.warn "uid fetch failed for user", options.user
+      else
+        options.uid = uid
       go()
   else
     go()
@@ -69,7 +72,10 @@ class Nodelay extends EventEmitter
         opts = {}
 
       #console.log "processing node", node for node in nodes
-      this[type][node] = opts for node in nodes
+      for node in nodes
+        _opts = {}
+        _opts[k] = v for k, v of opts
+        this[type][node] = _opts
 
     dsl =
       instance: this
