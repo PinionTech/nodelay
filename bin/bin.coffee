@@ -6,10 +6,12 @@ Node = require '../lib/node'
 opts = require('optimist')
   .usage("""
     Usage: $0 [command]
-      You probably want to wrap your command in single quotes so your other quotes don't get eaten by your shell.
       If no command is specified, nodelay will open a REPL.
 
-      Resource paths can be either "strings" or ["arrays","of","strings"] for nested resources.
+      Resource paths can be either strings or [arrays,of,strings] for nested resources.
+
+      You can also use undefined commands as a shortcut. COMMAND RES ARGS becomes a
+      message {type: COMMAND, resource: RES, data: ARGS}
 
     Commands:
       help              Show this message
@@ -48,15 +50,23 @@ node.connect argv.host, argv.port, ->
 global.quiet = true
 isRepl = false
 
-printMsg = (msg) ->
-  {from, type, data, resource} = msg
-  resource = [resource] if typeof resource is 'string'
+printMsg = (msg, depth=999) ->
+  from = if typeof msg.from is 'object' then msg.from.join('>') else msg.from
+  res = if typeof msg.resource is 'object' then msg.resource?.join('>') else msg.resource
+  header = "[#{from}: #{RED}#{msg.type} #{BLUE}#{res or ''}#{RESET}]"
+  empty = false
+  if typeof msg.data is 'object'
+    empty = true
+    for k of msg.data
+      empty = false
+      break
+    header += "\n" unless empty
+
   process.stdout.write "\r"
-  contents = util.inspect data, false, 4, true
-  header = "[#{from} #{RED}#{type}#{RESET}]"
-  header += " [#{GREEN}#{resource.join '>'}#{RESET}]" if resource
-  header += "\n" if contents.indexOf('\n') >= 0
-  console.log header, contents
+  if empty
+    console.log (new Date()).toISOString(), header
+  else
+    console.log (new Date()).toISOString(), header, util.inspect msg.data, false, depth, true
 
 node.on '*', (msg) ->
   unless global.quiet or msg.type is 'pong'
@@ -103,13 +113,38 @@ help = ->
   opts.showHelp(console.log)
 
 
+BUILTINS = "help resources resource send stream update".split(" ")
+processArgs = (cmd, args...) ->
+  if cmd in BUILTINS
+    str = "#{cmd}(#{quote args})"
+  else
+    str = "send(type:#{quote cmd}, resource:#{quote(args[0]) or null}, data: #{quote(args[1..]) or '{}'})"
+
+  #console.log "str", str
+  return str
+
+quote = (args) ->
+  return "" unless args?
+  args = [args] unless Array.isArray args
+  (for arg in args
+    if !isNaN(parseFloat(arg)) && isFinite(arg)
+      arg
+    else if match = arg.match /^\[(.*)\]$/
+      "[#{quote match[1].split(',')}]"
+    else if arg.match /^\w*$/
+      "'#{arg}'"
+    else
+      arg
+  ).join(',')
+
+
+
 started = false
 start = ->
   return if started
   started = true
   if args.length
-    args[0] = args[0]+"()" if args.length is 1 and args[0].indexOf(' ') is -1
-    coffee.eval args.join ' '
+    coffee.eval processArgs args...
   else
     isRepl = true
 
