@@ -131,7 +131,7 @@ quote = (args) ->
       arg
     else if match = arg.match /^\[(.*)\]$/
       "[#{quote match[1].split(',')}]"
-    else if arg.match /^\w*$/
+    else if arg.match /^[\w-]*$/
       "'#{arg}'"
     else
       arg
