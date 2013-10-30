@@ -13,7 +13,7 @@ onlyChanges = (older, newer) ->
   obj = if Array.isArray(older) then [] else {}
   changed = false
   for k of newer
-    if typeof older[k] is 'object' and typeof newer[k] is 'object'
+    if typeof older[k] is 'object' and typeof newer[k] is 'object' and older[k] isnt null and newer[k] isnt null
       changes = onlyChanges older[k], newer[k]
       if changes
         obj[k] = changes

@@ -83,6 +83,16 @@ describe "onlyChanges",
 
       "returns only the changed objects": (v) -> assert.deepEqual v, {b:{b:1}}
 
+    "when the second nested object is a null":
+      topic: -> onlyChanges {a:{a:1,b:2}, b:{a:1,b:2}}, {a:{a:1,b:2}, b:null}
+
+      "returns only the changed objects": (v) -> assert.deepEqual v, {b:null}
+
+    "when the first nested object is a null":
+      topic: -> onlyChanges {a:{a:1,b:2}, b:null}, {a:{a:1,b:2}, b:{a:1,b:1}}
+
+      "returns only the changed objects": (v) -> assert.deepEqual v, {b:{a:1,b:1}}
+
     "when the nested objects have no changes":
       topic: -> onlyChanges {a:{a:1,b:2}, b:{a:1,b:2}}, {a:{a:1,b:2}, b:{a:1,b:2}}
 
