@@ -19,7 +19,8 @@
     "fs-ext": "git://github.com/sgentle/node-fs-ext.git",
     "request": "~2.12.0",
     "toobusy": "~0.2.3",
-    "uid-number": "0.0.3"
+    "uid-number": "0.0.3",
+    "mkdirp": "~0.3.5"
   },
   "devDependencies": {
     "vows": "*",

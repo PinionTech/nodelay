@@ -1,6 +1,7 @@
 fs            = require 'fs'
 path          = require 'path'
 {exec, spawn} = require 'child_process'
+mkdirp        = require 'mkdirp'
 
 Node  = require '../lib/node'
 
@@ -37,6 +38,7 @@ start = (res, cb) ->
   done = ->
     pid = process.pid
     if service.pidFile && service.writePidFile
+      mkdirp.sync path.dirname(service.pidFile)
       fs.writeFileSync service.pidFile, pid, 'utf8'
     cb?()
 
