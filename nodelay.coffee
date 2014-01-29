@@ -14,9 +14,6 @@ children = []
 
 forkCoffee = (script, args, options={}) ->
   go = ->
-    #console.log "got forkCoffee", script, args, options
-    coffeePath = path.join __dirname, 'node_modules/.bin/coffee'
-    [oldExecPath, process.execPath] = [process.execPath, coffeePath]
     if not fs.existsSync script
       script = path.join __dirname, script
       options.cwd ?= __dirname
@@ -24,7 +21,6 @@ forkCoffee = (script, args, options={}) ->
     child = fork script, args, options
     child.on 'exit', (code, signal) -> handleRestart code, signal, script, args, options
     children.push child
-    process.execPath = oldExecPath
     child
 
   if options.user
