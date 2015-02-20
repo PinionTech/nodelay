@@ -255,7 +255,7 @@ class Resource
 
 class Selector
   constructor: (@node, @selector, @updateCB) ->
-    matcher = {type: "resource update", resource: selector}
+    matcher = {type: "resource update", resource: @selector}
 
     #console.log @node.name, "listening for", matcher
     @node.on matcher, @handleMatchUpdate
