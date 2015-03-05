@@ -22,7 +22,7 @@ class Parent extends EventEmitter
   connect: (@host, @port, @cb) ->
     console.log @node.name, "connecting to", @host, "on", @port
     @ws?.close()
-    @ws = new ws "ws://#{host}:#{port}"
+    @ws = new ws "ws://#{@host}:#{@port}"
     @ws.on 'message', (data) => @recv data, @ws
 
     @ws.on 'open', =>
@@ -122,7 +122,7 @@ class Children extends MsgEmitter
     @listen host, port, cb
 
   listen: (@host, @port, cb) ->
-    console.log @node.name, "listening on", host, "port", port
+    console.log @node.name, "listening on", @host, "port", @port
     @on type: 'ping', scope: 'link', (msg) => @send type: 'pong', scope: 'link', to: msg.from
 
     @wss = new ws.Server {host, port}
